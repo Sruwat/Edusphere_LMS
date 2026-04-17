@@ -3,16 +3,22 @@ import { toast } from 'sonner';
 const DEFAULT_BASE = '/api';
 const BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE).replace(/\/$/, '');
 
+function isStorageBlockedError(error) {
+  if (!error) return false;
+  const message = String(error.message || error);
+  return message.includes('Access is denied') || message.includes('storage') || message.includes('Storage');
+}
+
 // safe wrappers around localStorage to avoid exceptions when browser
 // tracking protection blocks access to storage (e.g., Safari ITP).
 function _safeLocalGet(key) {
-  try { return localStorage.getItem(key); } catch (e) { console.warn('localStorage.getItem blocked', e); return null; }
+  try { return localStorage.getItem(key); } catch (e) { if (!isStorageBlockedError(e)) console.warn('localStorage.getItem failed', e); return null; }
 }
 function _safeLocalSet(key, val) {
-  try { return localStorage.setItem(key, val); } catch (e) { console.warn('localStorage.setItem blocked', e); }
+  try { return localStorage.setItem(key, val); } catch (e) { if (!isStorageBlockedError(e)) console.warn('localStorage.setItem failed', e); }
 }
 function _safeLocalRemove(key) {
-  try { return localStorage.removeItem(key); } catch (e) { console.warn('localStorage.removeItem blocked', e); }
+  try { return localStorage.removeItem(key); } catch (e) { if (!isStorageBlockedError(e)) console.warn('localStorage.removeItem failed', e); }
 }
 
 function _getStorage() {

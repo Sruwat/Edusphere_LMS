@@ -5,7 +5,7 @@
 
   export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
-    const backendOrigin = env.VITE_BACKEND_ORIGIN || 'http://127.0.0.1:8000';
+    const backendOrigin = env.VITE_BACKEND_ORIGIN || 'http://127.0.0.1:8001';
 
     return {
     plugins: [react({
@@ -77,6 +77,11 @@
           target: backendOrigin,
           changeOrigin: true,
           secure: false,
+          configure: (proxy) => {
+            proxy.on('error', (error) => {
+              console.error('Vite API proxy error:', error.message);
+            });
+          },
         },
       },
     },

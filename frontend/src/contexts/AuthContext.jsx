@@ -1,9 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api, { setAuthFailureHandler } from '../services/api';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext(null);
+
+function isStorageBlockedError(error) {
+  if (!error) return false;
+  const message = String(error.message || error);
+  return message.includes('Access is denied') || message.includes('storage') || message.includes('Storage');
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -19,7 +24,7 @@ export function AuthProvider({ children }) {
       const savedUser = (typeof localStorage !== 'undefined') ? localStorage.getItem('user') : null;
       return savedUser ? JSON.parse(savedUser) : null;
     } catch (e) {
-      console.warn('localStorage.getItem blocked during AuthContext init', e);
+      if (!isStorageBlockedError(e)) console.warn('localStorage.getItem failed during AuthContext init', e);
       return null;
     }
   });
@@ -29,13 +34,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // If we have an access token but no user, try to fetch /auth/me
     let access = null;
-    try { access = localStorage.getItem('access'); } catch (e) { console.warn('localStorage.getItem blocked in AuthContext', e); access = null; }
+    try { access = localStorage.getItem('access'); } catch (e) { if (!isStorageBlockedError(e)) console.warn('localStorage.getItem failed in AuthContext', e); access = null; }
     if (access && !user) {
       setLoading(true);
       api.me()
         .then((u) => {
           if (u) {
-            try { localStorage.setItem('user', JSON.stringify(u)); } catch (e) { console.warn('localStorage.setItem blocked in AuthContext', e); }
+            try { localStorage.setItem('user', JSON.stringify(u)); } catch (e) { if (!isStorageBlockedError(e)) console.warn('localStorage.setItem failed in AuthContext', e); }
             setUser(u);
           }
         })

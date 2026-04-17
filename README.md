@@ -1,231 +1,194 @@
 # Edusphere LMS
 
-Edusphere LMS is a modern learning management platform designed to bring teaching, learning, assessment, communication, and academic operations into one connected system.
+Edusphere LMS is an all-in-one academic operating system built for schools, colleges, coaching institutes, academies, and modern training teams. It brings course delivery, live learning, testing, assignments, communication, student support, and AI-assisted experiences into one connected platform.
 
-It is built for schools, colleges, coaching centers, training academies, and digital education teams that want more than a basic course portal. Edusphere combines academic structure with smart automation, interactive learning tools, and AI-powered support so institutions can deliver a stronger student experience and a more efficient teaching workflow.
+Instead of forcing institutions to manage classes in one tool, tests in another, resources in another, and communication somewhere else, Edusphere keeps the learning journey in one place. Students can enroll, attend live classes, take tests, submit work, access the digital library, and get AI-powered help. Teachers and admins can manage operations, track academic progress, and run the institution from a unified dashboard.
 
-## Why Edusphere
-
-Traditional LMS platforms often split learning across too many tools. Classes happen in one place, tests in another, files in another, and communication somewhere else. Edusphere is built to unify that experience.
-
-With Edusphere, students can discover courses, enroll, attend live sessions, take tests, submit assignments, access learning materials, and get AI-assisted help from a single platform. Teachers and administrators can manage academic delivery, monitor participation, review progress, and run operations from one dashboard.
-
-## Core Purpose
+## What Edusphere Solves
 
 Edusphere LMS helps institutions:
 
-- deliver structured digital learning at scale
-- simplify course and classroom management
-- improve student engagement and participation
-- centralize tests, assignments, attendance, and resources
-- offer AI-powered academic support and content assistance
-- create a smooth experience for students, teachers, and admins
+- launch structured digital learning programs
+- centralize courses, tests, assignments, attendance, and communication
+- improve student engagement with interactive and AI-assisted support
+- simplify teacher workflows for delivery, evaluation, and classroom management
+- give admins visibility into performance, activity, and operations
 
-## Key Product Highlights
+## Core Product Experience
 
-### Smart Multi-Role Platform
+### Multi-role platform
 
-Edusphere supports separate experiences for:
+Edusphere includes dedicated experiences for students, teachers, and admins. Each role gets the controls, dashboards, and workflows needed for real academic use, making the platform feel operational rather than purely demonstrational.
 
-- Students
-- Teachers
-- Admins
+### Course creation and enrollment
 
-Each role gets relevant dashboards, workflows, and controls, making the product suitable for real institutional use rather than just demo-style course browsing.
-
-### Course Management and Enrollment
-
-The platform includes complete course workflows such as:
-
-- course creation and publishing
-- structured lecture management
-- student enrollment tracking
-- course progress monitoring
-- course ratings and feedback
-
-Students can browse and join learning experiences, while teachers can manage course delivery from creation to completion.
+Teachers can create and publish courses, manage lectures, upload study materials, and structure the academic journey end to end. Students can explore courses, enroll, and track their learning progress from one interface.
 
 ### AI Tutor
 
-One of the standout features of Edusphere is the AI Tutor.
+The AI Tutor gives students an on-demand academic companion for clarification, guided learning, instant explanations, and support during self-study or revision. It is designed as a value-added feature that makes the LMS feel more responsive and personalized.
 
-It is designed to act as an always-available academic companion that can help learners:
+### AI-enhanced digital library
 
-- ask subject-related questions
-- get instant explanations
-- receive study guidance
-- interact through chat-based learning support
-- work with image-based or media-assisted learning flows
+The digital library is more than a file repository. It acts as a learning resource hub where students and teachers can organize, discover, access, and manage academic content in a more intelligent way.
 
-This makes the platform more engaging and support-driven, especially for self-paced learning and revision.
+### Live classes
 
-### AI-Enhanced Digital Library
+Teachers can schedule and manage live sessions directly inside the platform. Students can view upcoming classes and join from the same academic environment where they access courses and assignments, keeping live learning integrated instead of fragmented.
 
-Edusphere includes an enhanced library experience that goes beyond simple file storage.
+### Live tests and assessments
 
-The digital library helps students and teachers:
+Edusphere supports quizzes, tests, question management, submissions, and results tracking. This allows institutions to conduct continuous evaluation inside the LMS instead of depending on disconnected assessment tools.
 
-- upload and organize study materials
-- access books, videos, documents, and resources
-- search and filter learning content
-- manage downloadable academic assets
-- interact with AI-assisted content workflows
+### Assignments and submissions
 
-This creates a central knowledge hub for the institution.
+Teachers can create assignments with deadlines, instructions, file attachments, and grading workflows. Students can submit work digitally, while staff can review progress and maintain academic accountability.
 
-### Live Classes
+### Attendance, notifications, and analytics
 
-Edusphere supports direct live-class management inside the platform.
+The platform includes attendance tracking, announcements, notifications, profile management, settings, and analytics-oriented modules that support operational visibility and day-to-day academic management.
 
-Teachers can:
-
-- schedule live classes
-- attach class details and session links
-- manage course-linked sessions
-- update or remove sessions when needed
-
-Students can:
-
-- view upcoming live classes
-- join sessions directly
-- track scheduled academic sessions from one place
-
-This helps replace fragmented live-teaching workflows with a more organized in-platform experience.
-
-### Live Test and Examination System
-
-The test engine is built for active academic evaluation.
-
-It supports:
-
-- test and quiz creation
-- structured questions
-- student test submissions
-- result and progress tracking
-- teacher-side management of assessments
-
-This allows institutions to conduct routine tests, quizzes, and evaluation cycles directly inside the LMS.
-
-### Assignment and Submission Workflow
-
-Edusphere includes a full assignment system with:
-
-- assignment creation
-- deadlines and status tracking
-- file-based submissions
-- submission review flows
-- teacher feedback and grading support
-
-This ensures academic work remains organized and traceable.
-
-### Attendance Management
-
-Attendance is integrated into the platform so institutions can manage participation alongside academics.
-
-The system supports:
-
-- attendance records
-- course-linked attendance tracking
-- teacher/admin attendance workflows
-- student visibility into attendance-related information
-
-### Announcements and Notifications
-
-Communication features are built into the product to keep the learning environment active and informed.
-
-Edusphere includes:
-
-- platform announcements
-- user notifications
-- activity visibility
-- system alerts for admin-side awareness
-
-This makes it easier to keep students, teachers, and administrators aligned.
-
-### User Profiles and Settings
-
-The platform supports profile and settings management for a more personalized and production-ready experience.
-
-This includes:
-
-- user profile information
-- role-linked profile records
-- user settings
-- preferences and account updates
-
-### Analytics and Academic Visibility
-
-Edusphere is structured to support insight-driven education management.
-
-The platform includes analytics-oriented modules and data models for:
-
-- progress visibility
-- test performance
-- course engagement
-- activity monitoring
-- operational dashboards
-
-## Feature Summary
-
-Edusphere LMS currently includes:
+## Feature Highlights
 
 - Student, Teacher, and Admin dashboards
-- Course management
-- Lecture and study material management
-- Enrollment flows
-- Assignment system
-- Test and quiz system
+- Course creation, publishing, and enrollment management
+- Lecture management and study materials
+- AI Tutor workflows
+- AI-enhanced digital library
+- Live classes with join links and scheduling
+- Live tests, quizzes, and submission flows
+- Assignment creation, upload, and review
 - Attendance management
-- Live classes
-- Announcements
-- Notifications
-- User profiles and settings
-- Course ratings
-- Digital library
-- AI Tutor
-- AI-assisted academic workflows
-- Backend API with Django and MySQL
+- Announcements and notifications
+- User profiles, settings, and role-linked records
+- Course ratings and academic activity tracking
+- Django REST API with MySQL persistence
 
 ## Technology Stack
 
 - Frontend: React + Vite
 - Backend: Django + Django REST Framework
 - Database: MySQL
-- Authentication: JWT-based auth
-- Storage support: local file storage or S3/MinIO-style configuration
+- Authentication: JWT
+- File support: local storage or S3/MinIO-style object storage
 
-## Local Setup
+## Fresh Clone Setup
 
-### Backend
+### 1. Clone the repository
+
+```powershell
+git clone https://github.com/Sruwat/Edusphere_LMS.git
+cd Edusphere_LMS
+```
+
+### 2. Prepare MySQL
+
+Create a MySQL database named `sarasedu`. Then create an application user and grant access to that database.
+
+Example SQL:
+
+```sql
+CREATE DATABASE IF NOT EXISTS sarasedu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'sarasedu'@'localhost' IDENTIFIED BY 'your-app-password';
+ALTER USER 'sarasedu'@'localhost' IDENTIFIED BY 'your-app-password';
+GRANT ALL PRIVILEGES ON sarasedu.* TO 'sarasedu'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+### 3. Configure the backend environment
 
 ```powershell
 cd backend
+Copy-Item .env.example .env
+```
+
+Open `backend/.env` and update the MySQL values so they match your local server:
+
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_HOST`
+- `DB_PORT`
+
+For local development, the frontend usually runs on `http://localhost:5000`, so keep `CORS_ALLOWED_ORIGIN` aligned with that.
+
+### 4. Create the Python virtual environment
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+### 5. Install backend dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+### 6. Run migrations
+
+```powershell
 .\.venv\Scripts\python.exe sarasedu_backend\manage.py migrate
+```
+
+### 7. Seed demo accounts and sample data
+
+```powershell
+.\.venv\Scripts\python.exe sarasedu_backend\manage.py seed_db
+```
+
+### 8. Start the backend
+
+```powershell
 .\.venv\Scripts\python.exe sarasedu_backend\manage.py runserver 8001
 ```
 
-### Frontend
+### 9. Install frontend dependencies
 
 ```powershell
-cd frontend
+cd ..\frontend
 npm install
+```
+
+### 10. Start the frontend
+
+```powershell
 npm run dev
 ```
 
-## Local URLs
+## Local Development URLs
 
 - Frontend: `http://127.0.0.1:5000`
-- Backend API: `http://127.0.0.1:8001/api/`
 - Backend status: `http://127.0.0.1:8001/`
+- Backend API: `http://127.0.0.1:8001/api/`
 
-## Production Direction
+## Demo Credentials
 
-For Version 1 launch, Edusphere is positioned as an all-in-one academic operations and digital learning platform with strong practical value in:
+After running `seed_db`, these demo accounts are available:
 
-- online course delivery
-- hybrid teaching models
-- digital assessments
-- centralized academic resource access
-- AI-supported student learning
+- Admin: `admin@sarasedu.com` / `adminpass`
+- Teacher: `sarah.johnson@sarasedu.com` / `teacherpass`
+- Teacher: `michael.chen@sarasedu.com` / `teacherpass`
+- Student: `john.doe@student.com` / `studentpass`
+- Student: `jane.smith@student.com` / `studentpass`
 
-It is especially suitable for institutions that want a platform that feels more advanced than a simple LMS and closer to a full digital education operating system.
+Note: the frontend login accepts email, and the app automatically maps that email to the correct username for JWT login.
+
+## Version 1 Release Notes
+
+Version `1.0.0` establishes the first complete Edusphere LMS release with:
+
+- a multi-role academic dashboard experience
+- course, lecture, and enrollment workflows
+- AI Tutor and AI-assisted library concepts
+- live classes, tests, and assignments
+- attendance, notifications, analytics, and profile management
+- a React frontend backed by Django REST APIs and MySQL
+
+## License
+
+This project is available under the MIT License. See [`LICENSE`](LICENSE) for details.

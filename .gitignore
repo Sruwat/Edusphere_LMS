@@ -22,3 +22,8 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+backend/mysql-reset-init.sql
+frontend/node_modules/
+backend/__pycache__/
+backend/sarasedu_backend/**/__pycache__/
+backend/test.sqlite3

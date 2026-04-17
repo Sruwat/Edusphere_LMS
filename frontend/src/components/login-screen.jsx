@@ -30,6 +30,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { toast } from "sonner";
 
 export function LoginScreen() {
   const { login, register, user } = useAuth();
@@ -69,7 +70,7 @@ export function LoginScreen() {
   };
 
   const handleGoogleAuth = () => {
-    login("user@gmail.com", "").catch(() => {});
+    toast.info("Google sign-in is not enabled in this Version 1 build yet. Use email and password to continue.");
   };
 
   return (
@@ -80,10 +81,10 @@ export function LoginScreen() {
             <GraduationCap className="h-12 w-12 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Saras Edu Hub
+            Edusphere LMS
           </h1>
           <p className="text-gray-600">
-            Your gateway to quality education
+            AI-powered learning, live classes, and academic management in one place
           </p>
         </div>
 
@@ -103,6 +104,7 @@ export function LoginScreen() {
                   <Button
                     variant="outline"
                     className="w-full"
+                    type="button"
                     onClick={handleGoogleAuth}
                   >
                     <svg
@@ -128,6 +130,9 @@ export function LoginScreen() {
                     </svg>
                     Continue with Google
                   </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Demo sign-in is currently email/password only.
+                  </p>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">

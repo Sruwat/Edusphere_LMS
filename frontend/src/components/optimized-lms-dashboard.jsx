@@ -642,7 +642,7 @@ export function OptimizedLMSDashboard() {
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <GraduationCap className="h-5 w-5 text-white" />
                 </div>
-                <span className="font-bold text-xl">Saras Edu Hub</span>
+                <span className="font-bold text-xl">Edusphere LMS</span>
               </>
             )}
             <Button

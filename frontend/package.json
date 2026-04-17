@@ -1,6 +1,6 @@
 {
-      "name": "SarasEduHub (Community)",
-      "version": "0.1.0",
+      "name": "edusphere-lms",
+      "version": "1.0.0",
       "private": true,
       "dependencies": {
             "@radix-ui/react-accordion": "^1.2.3",
