@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: edusphere-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: |
+      pip install -r requirements.txt
+      cd sarasedu_backend
+      python manage.py collectstatic --noinput
+      python manage.py migrate
+    startCommand: |
+      cd sarasedu_backend
+      gunicorn sarasedu_backend.wsgi:application --bind 0.0.0.0:$PORT
+    autoDeploy: true

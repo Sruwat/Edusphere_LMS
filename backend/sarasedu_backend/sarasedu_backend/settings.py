@@ -12,6 +12,9 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'unsafe-dev-secret-change-me-32
 
 DEBUG = os.environ.get('DEBUG', '0') == '1'
 
+if not DEBUG and SECRET_KEY == 'unsafe-dev-secret-change-me-32chars':
+    raise RuntimeError('DJANGO_SECRET_KEY must be set when DEBUG=0')
+
 ALLOWED_HOSTS = [
     host.strip() for host in os.environ.get(
         'ALLOWED_HOSTS',
@@ -42,6 +45,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -80,6 +84,11 @@ if USE_SQLITE_FOR_TESTS:
         }
     }
 else:
+    db_options = {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
+    db_ssl_ca = os.environ.get('DB_SSL_CA')
+    if db_ssl_ca:
+        db_options['ssl'] = {'ca': db_ssl_ca}
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -88,7 +97,7 @@ else:
             'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
             'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
             'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
+            'OPTIONS': db_options,
         }
     }
 
@@ -103,6 +112,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -158,6 +168,15 @@ if DEBUG:
     # During development allow the common local origins
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOW_CREDENTIALS = True
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    X_FRAME_OPTIONS = 'DENY'
 
 # File storage (local by default). Set USE_S3=1 to enable S3/MinIO via django-storages.
 USE_S3 = os.environ.get('USE_S3', '0') == '1'
