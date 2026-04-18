@@ -87,6 +87,8 @@ else:
     db_options = {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
     db_ssl_ca = os.environ.get('DB_SSL_CA')
     db_ssl_mode = os.environ.get('DB_SSL_MODE')
+    if not db_ssl_mode and db_ssl_ca:
+        db_ssl_mode = 'VERIFY_CA'
     if db_ssl_mode:
         db_options['ssl_mode'] = db_ssl_mode
     if db_ssl_ca:
