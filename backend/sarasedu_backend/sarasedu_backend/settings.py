@@ -86,6 +86,9 @@ if USE_SQLITE_FOR_TESTS:
 else:
     db_options = {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
     db_ssl_ca = os.environ.get('DB_SSL_CA')
+    db_ssl_mode = os.environ.get('DB_SSL_MODE')
+    if db_ssl_mode:
+        db_options['ssl_mode'] = db_ssl_mode
     if db_ssl_ca:
         db_options['ssl'] = {'ca': db_ssl_ca}
 
