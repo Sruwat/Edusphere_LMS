@@ -181,30 +181,29 @@ if not DEBUG:
 # File storage (local by default). Set USE_S3=1 to enable S3/MinIO via django-storages.
 USE_S3 = os.environ.get('USE_S3', '0') == '1'
 if USE_S3:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    DEFAULT_FILE_STORAGE = 'core.storage_backends.PublicS3MediaStorage'
     AWS_ACCESS_KEY_ID = os.environ.get('MINIO_ACCESS_KEY') or os.environ.get('MINIO_ACCESS_KEY')
     AWS_SECRET_ACCESS_KEY = os.environ.get('MINIO_SECRET_KEY')
     AWS_STORAGE_BUCKET_NAME = os.environ.get('MINIO_BUCKET', 'sarasedu')
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
     # Endpoint used by the storage client (internal container DNS). For local dev
     # you may want to expose a public endpoint (e.g. http://localhost:9000) via
     # MINIO_PUBLIC_ENDPOINT to make generated file URLs accessible from host.
-    internal_endpoint = ('https://' if os.environ.get('MINIO_SECURE', '0') == '1' else 'http://') + os.environ.get('MINIO_ENDPOINT', 'minio:9000')
+    storage_endpoint = os.environ.get('STORAGE_ENDPOINT_URL')
+    if storage_endpoint:
+        internal_endpoint = storage_endpoint
+    else:
+        raw_endpoint = os.environ.get('MINIO_ENDPOINT', 'minio:9000')
+        if raw_endpoint.startswith('http://') or raw_endpoint.startswith('https://'):
+            internal_endpoint = raw_endpoint
+        else:
+            internal_endpoint = ('https://' if os.environ.get('MINIO_SECURE', '0') == '1' else 'http://') + raw_endpoint
     # Use the internal endpoint for the S3 client so the container can reach MinIO.
     AWS_S3_ENDPOINT_URL = internal_endpoint
     # Expose a public endpoint separately (used by front-end / URL generation) if provided.
-    MINIO_PUBLIC_ENDPOINT = os.environ.get('MINIO_PUBLIC_ENDPOINT') or None
-    # If a public endpoint is provided, use it as the custom domain so
-    # generated URLs are reachable from the host/browser while the client
-    # still talks to the internal endpoint.
-    if MINIO_PUBLIC_ENDPOINT:
-        # strip any scheme so django-storages doesn't add an extra protocol
-        from urllib.parse import urlparse
-        _p = urlparse(MINIO_PUBLIC_ENDPOINT)
-        host_only = _p.netloc or _p.path
-        AWS_S3_CUSTOM_DOMAIN = host_only
-        # prefer matching protocol for generated URLs
-        if _p.scheme:
-            AWS_S3_URL_PROTOCOL = _p.scheme + ':'
+    PUBLIC_MEDIA_BASE_URL = os.environ.get('STORAGE_PUBLIC_BASE_URL') or os.environ.get('MINIO_PUBLIC_ENDPOINT') or None
     AWS_S3_REGION_NAME = os.environ.get('MINIO_REGION', '')
     AWS_S3_SIGNATURE_VERSION = 's3v4'
     AWS_S3_VERIFY = os.environ.get('MINIO_SECURE', '0') == '1'
