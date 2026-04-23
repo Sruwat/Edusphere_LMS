@@ -51,12 +51,24 @@ class Migration(migrations.Migration):
                 ('updated_at', models.DateTimeField(auto_now=True)),
             ],
         ),
-        migrations.RemoveField(
-            model_name='liveclass',
-            name='max_participants',
+        migrations.SeparateDatabaseAndState(
+            # Avoid MySQL table rebuilds during deploy; the state still reflects
+            # that these legacy columns are gone from the model.
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='liveclass',
+                    name='max_participants',
+                ),
+            ],
         ),
-        migrations.RemoveField(
-            model_name='liveclass',
-            name='participants',
+        migrations.SeparateDatabaseAndState(
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='liveclass',
+                    name='participants',
+                ),
+            ],
         ),
     ]

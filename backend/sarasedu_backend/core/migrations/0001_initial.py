@@ -165,7 +165,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='TeacherProfile',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('employee_id', models.CharField(blank=True, max_length=50, null=True, unique=True)),
                 ('department', models.CharField(blank=True, max_length=100, null=True)),
                 ('qualification', models.CharField(blank=True, max_length=255, null=True)),
@@ -174,7 +173,7 @@ class Migration(migrations.Migration):
                 ('office_hours', models.CharField(blank=True, max_length=255, null=True)),
                 ('average_rating', models.DecimalField(decimal_places=2, default=0, max_digits=3)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='teacher_profile', to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='teacher_profile', serialize=False, to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -195,7 +194,6 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='StudentProfile',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('roll_number', models.CharField(blank=True, max_length=50, null=True, unique=True)),
                 ('grade_level', models.CharField(blank=True, max_length=20, null=True)),
                 ('parent_contact', models.CharField(blank=True, max_length=20, null=True)),
@@ -204,7 +202,7 @@ class Migration(migrations.Migration):
                 ('emergency_contact', models.TextField(blank=True, null=True)),
                 ('average_grade', models.DecimalField(decimal_places=2, default=0, max_digits=5)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='student_profile', to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='student_profile', serialize=False, to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -332,13 +330,12 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AdminProfile',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('employee_id', models.CharField(blank=True, max_length=50, null=True, unique=True)),
                 ('position', models.CharField(blank=True, max_length=100, null=True)),
                 ('access_level', models.CharField(blank=True, max_length=50, null=True)),
                 ('department', models.CharField(blank=True, max_length=100, null=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='admin_profile', to=settings.AUTH_USER_MODEL)),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='admin_profile', serialize=False, to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(

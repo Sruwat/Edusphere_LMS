@@ -10,9 +10,15 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='liveclass',
-            name='created_by',
+        migrations.SeparateDatabaseAndState(
+            # Avoid a physical DROP COLUMN during historical replay on MySQL.
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='liveclass',
+                    name='created_by',
+                ),
+            ],
         ),
         migrations.AlterField(
             model_name='liveclass',

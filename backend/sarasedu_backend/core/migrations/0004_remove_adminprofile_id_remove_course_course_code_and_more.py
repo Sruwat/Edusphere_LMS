@@ -12,36 +12,17 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='adminprofile',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='course',
-            name='course_code',
-        ),
-        migrations.RemoveField(
-            model_name='studentprofile',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='teacherprofile',
-            name='id',
-        ),
-        migrations.AlterField(
-            model_name='adminprofile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='admin_profile', serialize=False, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='studentprofile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='student_profile', serialize=False, to=settings.AUTH_USER_MODEL),
-        ),
-        migrations.AlterField(
-            model_name='teacherprofile',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, related_name='teacher_profile', serialize=False, to=settings.AUTH_USER_MODEL),
+        migrations.SeparateDatabaseAndState(
+            # Keep the historical state change, but avoid a physical DROP COLUMN here.
+            # Render's MySQL enforces sql_require_primary_key and can fail table rebuilds
+            # triggered by RemoveField even when the model's final state has a PK.
+            database_operations=[],
+            state_operations=[
+                migrations.RemoveField(
+                    model_name='course',
+                    name='course_code',
+                ),
+            ],
         ),
         migrations.CreateModel(
             name='LiveClass',
