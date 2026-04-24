@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import parse_qs, unquote, urlparse
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / '.env')
@@ -84,11 +85,51 @@ if USE_SQLITE_FOR_TESTS:
         }
     }
 else:
-    db_options = {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
-    db_ssl_ca = os.environ.get('DB_SSL_CA')
-    db_ssl_mode = os.environ.get('DB_SSL_MODE')
+    database_url = (
+        os.environ.get('DATABASE_URL')
+        or os.environ.get('MYSQL_URL')
+        or os.environ.get('CLEARDB_DATABASE_URL')
+        or ''
+    ).strip()
+
+    db_name = os.environ.get('DB_NAME', 'sarasedu')
+    db_user = os.environ.get('DB_USER', 'sarasedu')
+    db_password = os.environ.get('DB_PASSWORD', 'password')
+    db_host = os.environ.get('DB_HOST', '127.0.0.1')
+    db_port = os.environ.get('DB_PORT', '3306')
+
+    parsed_url_options = {}
+    if database_url:
+        parsed_url = urlparse(database_url)
+        if parsed_url.scheme in {'mysql', 'mysql2'}:
+            db_name = parsed_url.path.lstrip('/') or db_name
+            db_user = unquote(parsed_url.username or db_user)
+            db_password = unquote(parsed_url.password or db_password)
+            db_host = parsed_url.hostname or db_host
+            if parsed_url.port:
+                db_port = str(parsed_url.port)
+            parsed_url_options = {
+                key: values[-1]
+                for key, values in parse_qs(parsed_url.query).items()
+                if values
+            }
+
+    db_options = {
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        'charset': os.environ.get('DB_CHARSET', parsed_url_options.get('charset', 'utf8mb4')),
+        'connect_timeout': int(os.environ.get('DB_CONNECT_TIMEOUT', parsed_url_options.get('connect_timeout', '30'))),
+        'read_timeout': int(os.environ.get('DB_READ_TIMEOUT', parsed_url_options.get('read_timeout', '30'))),
+        'write_timeout': int(os.environ.get('DB_WRITE_TIMEOUT', parsed_url_options.get('write_timeout', '30'))),
+    }
+
+    db_ssl_ca = os.environ.get('DB_SSL_CA', parsed_url_options.get('ssl-ca', ''))
+    db_ssl_mode = os.environ.get('DB_SSL_MODE', parsed_url_options.get('ssl-mode', ''))
+    local_db_hosts = {'', 'localhost', '127.0.0.1', 'db', 'mysql'}
     if not db_ssl_mode and db_ssl_ca:
         db_ssl_mode = 'VERIFY_CA'
+    elif not db_ssl_mode and db_host not in local_db_hosts:
+        # Hosted MySQL providers such as Aiven typically require TLS.
+        db_ssl_mode = 'REQUIRED'
     if db_ssl_mode:
         db_options['ssl_mode'] = db_ssl_mode
     if db_ssl_ca:
@@ -97,11 +138,11 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('DB_NAME', 'sarasedu'),
-            'USER': os.environ.get('DB_USER', 'sarasedu'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'password'),
-            'HOST': os.environ.get('DB_HOST', '127.0.0.1'),
-            'PORT': os.environ.get('DB_PORT', '3306'),
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
             'OPTIONS': db_options,
         }
     }
