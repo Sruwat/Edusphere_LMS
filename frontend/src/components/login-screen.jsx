@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import {
+  ArrowLeft,
   Mail,
   Phone,
   Eye,
@@ -76,12 +77,22 @@ export function LoginScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-md">
+        <div className="mb-4">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white hover:text-slate-900"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <GraduationCap className="h-12 w-12 text-primary" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Edusphere LMS
+            Aiwana Edusphere LMS
           </h1>
           <p className="text-gray-600">
             AI-powered learning, live classes, and academic management in one place

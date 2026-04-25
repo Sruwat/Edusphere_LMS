@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LoginScreen } from './components/login-screen';
+import { LandingHome } from './components/landing-home';
 import { OptimizedLMSDashboard } from './components/optimized-lms-dashboard';
 
 function ProtectedRoute({ children }) {
@@ -46,7 +47,7 @@ function AppRoutes() {
             // use canonical `username` from the API (falls back to 'user' if missing)
             <Navigate to={`/${user.role}/${(user.username || 'user').toLowerCase().replace(/\s+/g, '_')}/dashboard`} replace />
           ) : (
-            <Navigate to="/login" replace />
+            <LandingHome />
           )
         } 
       />
