@@ -38,6 +38,7 @@ import {
   Brain,
   Calendar
 } from 'lucide-react';
+import { CourseDiscussions } from './course-discussions';
 
 // Props/types removed for JS build. Course details, materials and lectures should be fetched from API.
 export function EnhancedCourseDetail({ courseId, userRole, onBack }) {
@@ -1033,6 +1034,12 @@ export function EnhancedCourseDetail({ courseId, userRole, onBack }) {
           )}
         </div>
       </div>
+
+      <CourseDiscussions
+        courseId={courseId}
+        userRole={userRole}
+        enabled={course?.allow_discussions !== false}
+      />
     </div>
   );
 }

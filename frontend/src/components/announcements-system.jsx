@@ -25,6 +25,7 @@ import {
   Clock
 } from 'lucide-react';
 import * as api from '../services/api';
+import { useAnnouncementsQuery, useDeleteAnnouncementMutation, useSaveAnnouncementMutation } from '../features/announcements/queries';
 
 // Clean, single implementation of AnnouncementsSystem
 export function AnnouncementsSystem({ userRole, userId }) {
@@ -37,24 +38,22 @@ export function AnnouncementsSystem({ userRole, userId }) {
   const [descBody, setDescBody] = useState('');
 
   const [announcements, setAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
+  const { data, isLoading: loading, refetch } = useAnnouncementsQuery();
+  const deleteAnnouncementMutation = useDeleteAnnouncementMutation();
 
   async function loadAnnouncements() {
-    setLoading(true);
     setFetchError(null);
     try {
-      const data = await api.getAnnouncements();
-      setAnnouncements(data || []);
+      await refetch();
     } catch (err) {
       console.error('Failed to fetch announcements', err);
       setFetchError(err);
-    } finally {
-      setLoading(false);
     }
   }
 
   useEffect(() => { loadAnnouncements(); }, []);
+  useEffect(() => { setAnnouncements(data || []); }, [data]);
 
   const filteredAnnouncements = (announcements || []).filter(a => {
     const hay = ((a.title || '') + ' ' + ((a.content || a.body) || '')).toLowerCase();
@@ -160,7 +159,7 @@ export function AnnouncementsSystem({ userRole, userId }) {
                 try {
                   const ok = window.confirm('Delete this announcement? This cannot be undone.');
                   if (!ok) return;
-                  await api.deleteAnnouncement(announcement.id);
+                  await deleteAnnouncementMutation.mutateAsync(announcement.id);
                   try { const { toast } = await import('sonner'); toast.success('Announcement deleted'); } catch (e) {}
                   await loadAnnouncements();
                 } catch (err) { console.error('delete error', err); try { const { toast } = await import('sonner'); toast.error('Failed to delete'); } catch (e) {} }
@@ -243,6 +242,7 @@ function CreateAnnouncementDialog({ open, onOpenChange, onCreated, editingAnnoun
   const [scheduleOption, setScheduleOption] = useState('immediate');
   const [scheduledFor, setScheduledFor] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
+  const saveAnnouncementMutation = useSaveAnnouncementMutation();
 
   useEffect(() => {
     if (editingAnnouncement) {
@@ -342,12 +342,7 @@ function CreateAnnouncementDialog({ open, onOpenChange, onCreated, editingAnnoun
               if (channelInApp) channels.push('in-app'); if (channelEmail) channels.push('email'); if (channelSms) channels.push('sms');
               const payload = { title: title.trim(), body: content.trim(), audience: audienceSel, priority, channels, scheduled_for: scheduleOption === 'scheduled' && scheduledFor ? new Date(scheduledFor).toISOString() : null, expires_at: expiresAt ? new Date(expiresAt).toISOString() : null };
               try {
-                let res;
-                if (isEditing) {
-                  res = await api.updateAnnouncement(editingAnnouncement.id, payload);
-                } else {
-                  res = await api.createAnnouncement(payload);
-                }
+                const res = await saveAnnouncementMutation.mutateAsync({ id: isEditing ? editingAnnouncement.id : null, payload });
                 try { if (onCreated) await onCreated(res); } catch (e) { console.error('onCreated handler failed', e); }
                 onOpenChange(false);
                 // reset handled by effect watching editingAnnouncement

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     Course, Lecture, LectureMaterial, StudyMaterial,
     LiveClass,
@@ -31,6 +32,29 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class EmailOrUsernameTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = User.USERNAME_FIELD
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        username_field = self.fields.get(self.username_field)
+        if username_field is not None:
+            username_field.required = False
+            username_field.allow_blank = True
+
+    def validate(self, attrs):
+        username = attrs.get(self.username_field)
+        email = attrs.get('email')
+
+        if email and not username:
+            user = User.objects.filter(email__iexact=email).first()
+            if user:
+                attrs[self.username_field] = getattr(user, self.username_field)
+
+        return super().validate(attrs)
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -72,10 +96,20 @@ class AdminProfileSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     instructor = UserSerializer(read_only=True)
+    thumbnail = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Course
         fields = '__all__'
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if getattr(instance, 'thumbnail', None):
+            try:
+                ret['thumbnail_url'] = instance.thumbnail.url
+            except Exception:
+                pass
+        return ret
 
 
 class LectureSerializer(serializers.ModelSerializer):
@@ -196,6 +230,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
 
 class LibraryItemSerializer(serializers.ModelSerializer):
     uploaded_by = UserSerializer(read_only=True)
+    thumbnail = serializers.ImageField(required=False, allow_null=True)
     # Accept `course_id` on write and include `course_id` on read so clients
     # (frontend) can send and receive the course id consistently.
     course_id = serializers.IntegerField(required=False, allow_null=True)
@@ -252,6 +287,11 @@ class LibraryItemSerializer(serializers.ModelSerializer):
             ret['course_id'] = instance.course.id if getattr(instance, 'course', None) else None
         except Exception:
             ret['course_id'] = None
+        if getattr(instance, 'thumbnail', None):
+            try:
+                ret['thumbnail_url'] = instance.thumbnail.url
+            except Exception:
+                pass
         # ensure tags is always a list for frontend convenience
         if ret.get('tags') is None:
             ret['tags'] = []

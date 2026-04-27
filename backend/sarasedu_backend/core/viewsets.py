@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status, filters
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
@@ -12,6 +13,8 @@ import os
 import uuid
 import logging
 from django.utils.text import get_valid_filename
+from .announcement_delivery import dispatch_announcement
+from .permissions import IsInstructorOrAdmin, IsTeacherOrAdmin
 from .models import (
     Course, Lecture, LectureMaterial, StudyMaterial,
     LiveClass,
@@ -204,15 +207,14 @@ class BaseModelViewSet(viewsets.ModelViewSet):
 class CourseViewSet(BaseModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    parser_classes = [MultiPartParser, FormParser]
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('title', 'subtitle', 'description', 'tags')
     ordering_fields = ('created_at', 'title')
     ordering = ('-created_at',)
     # Only teachers and admins may create/update/delete
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
     # object-level permission: only instructor or admin may edit/delete
-    from .permissions import IsInstructorOrAdmin
 
     def get_permissions(self):
         # For safe methods use the BaseModelViewSet behavior
@@ -288,7 +290,6 @@ class LectureProgressViewSet(BaseModelViewSet):
 class AssignmentViewSet(BaseModelViewSet):
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
     def perform_create(self, serializer):
@@ -510,7 +511,6 @@ class AssignmentAttachmentViewSet(BaseModelViewSet):
 class TestViewSet(BaseModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
     def perform_create(self, serializer):
@@ -525,7 +525,6 @@ class QuestionViewSet(BaseModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
 
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
     def perform_create(self, serializer):
@@ -889,10 +888,10 @@ class AttendanceRecordViewSet(BaseModelViewSet):
 class LibraryItemViewSet(BaseModelViewSet):
     queryset = LibraryItem.objects.all()
     serializer_class = LibraryItemSerializer
+    parser_classes = [MultiPartParser, FormParser]
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ('title', 'category', 'subject')
     ordering_fields = ('upload_date', 'title')
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
 
@@ -909,14 +908,12 @@ class LibraryDownloadViewSet(BaseModelViewSet):
 class EventViewSet(BaseModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
 
 class LiveClassViewSet(BaseModelViewSet):
     queryset = LiveClass.objects.all()
     serializer_class = LiveClassSerializer
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
 
     def perform_create(self, serializer):
@@ -946,7 +943,6 @@ class LiveClassViewSet(BaseModelViewSet):
 class AnnouncementViewSet(BaseModelViewSet):
     queryset = Announcement.objects.all()
     serializer_class = AnnouncementSerializer
-    from .permissions import IsTeacherOrAdmin
     write_permission_classes = [IsTeacherOrAdmin]
     
     def get_queryset(self):
@@ -977,66 +973,8 @@ class AnnouncementViewSet(BaseModelViewSet):
                     ann_obj = None
 
                 if ann_obj:
-                    channels = (ann_obj.channels or [])
-                    audience = (ann_obj.audience or '').lower() if ann_obj.audience else 'all'
-
-                    # Determine recipients
-                    users_qs = None
-                    if audience == 'students':
-                        users_qs = User.objects.filter(role='student').exclude(email__isnull=True).exclude(email='')
-                    elif audience == 'teachers':
-                        users_qs = User.objects.filter(role='teacher').exclude(email__isnull=True).exclude(email='')
-                    else:
-                        users_qs = User.objects.exclude(email__isnull=True).exclude(email='')
-
-                    # Send emails if requested and email backend configured
-                    if 'email' in channels and users_qs.exists():
-                        logger = logging.getLogger(__name__)
-                        try:
-                            recipient_list = list(filter(None, set(users_qs.values_list('email', flat=True))))
-                            if recipient_list:
-                                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'no-reply@example.com'
-                                subject = ann_obj.title or 'Announcement'
-                                message = ann_obj.body or ''
-                                # Send in batches to avoid SMTP limits for large recipient lists
-                                batch_size = getattr(settings, 'ANNOUNCEMENT_EMAIL_BATCH_SIZE', 100)
-                                smtp_host = getattr(settings, 'EMAIL_HOST', None)
-                                smtp_port = getattr(settings, 'EMAIL_PORT', None)
-                                for i in range(0, len(recipient_list), batch_size):
-                                    batch = recipient_list[i:i+batch_size]
-                                    try:
-                                        send_mail(subject, message, from_email, batch, fail_silently=False)
-                                    except Exception as e_batch:
-                                        logger.error('Failed to send announcement email batch (%d-%d) via SMTP %s:%s: %s', i, i+len(batch), smtp_host, smtp_port, e_batch)
-                        except Exception:
-                            logger.exception('Failed to prepare/send announcement emails')
-
-                    # Send SMS if requested and Twilio config exists
-                    if 'sms' in channels:
-                        tw_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
-                        tw_token = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
-                        tw_from = getattr(settings, 'TWILIO_FROM_NUMBER', None)
-                        if tw_sid and tw_token and tw_from:
-                            # Collect phone numbers from users (both students and teachers depending on audience)
-                            phone_qs = None
-                            if audience == 'students':
-                                phone_qs = User.objects.filter(role='student').exclude(phone__isnull=True).exclude(phone='')
-                            elif audience == 'teachers':
-                                phone_qs = User.objects.filter(role='teacher').exclude(phone__isnull=True).exclude(phone='')
-                            else:
-                                phone_qs = User.objects.exclude(phone__isnull=True).exclude(phone='')
-
-                            for phone in phone_qs.values_list('phone', flat=True):
-                                try:
-                                    payload = {'From': tw_from, 'To': phone, 'Body': ann_obj.body or ann_obj.title}
-                                    url = f'https://api.twilio.com/2010-04-01/Accounts/{tw_sid}/Messages.json'
-                                    r = requests.post(url, data=payload, auth=(tw_sid, tw_token), timeout=10)
-                                    if r.status_code >= 400:
-                                        logger.warning('Twilio SMS send failed for %s status=%s', phone, r.status_code)
-                                except Exception:
-                                    logger.exception('Error sending SMS to %s', phone)
-                        else:
-                            logger.warning('SMS channel requested but Twilio is not configured')
+                    if not ann_obj.scheduled_for or ann_obj.scheduled_for <= timezone.now():
+                        dispatch_announcement(ann_obj, log=logger)
 
             except Exception as notify_exc:
                 logger.exception('Error while sending announcement notifications: %s', notify_exc)
@@ -1050,6 +988,7 @@ class AnnouncementViewSet(BaseModelViewSet):
 class UploadViewSet(BaseModelViewSet):
     queryset = Upload.objects.all()
     serializer_class = UploadSerializer
+    parser_classes = [MultiPartParser, FormParser]
 
     def create(self, request, *args, **kwargs):
         file = request.FILES.get('file')
@@ -1135,6 +1074,8 @@ class UserSettingsViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         # Users can only see their own settings
+        if getattr(self, 'swagger_fake_view', False) or not getattr(self.request.user, 'is_authenticated', False):
+            return UserSettings.objects.none()
         return UserSettings.objects.filter(user=self.request.user)
     
     def perform_create(self, serializer):
@@ -1166,7 +1107,7 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         # Only admins can view activity logs
-        if self.request.user and self.request.user.role == 'admin':
+        if self.request.user and getattr(self.request.user, 'is_authenticated', False) and getattr(self.request.user, 'role', None) == 'admin':
             try:
                 return ActivityLog.objects.all().order_by('-created_at')[:50]  # Last 50 activities
             except Exception:
@@ -1183,7 +1124,7 @@ class SystemAlertViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         # Only admins can view system alerts
-        if self.request.user and self.request.user.role == 'admin':
+        if self.request.user and getattr(self.request.user, 'is_authenticated', False) and getattr(self.request.user, 'role', None) == 'admin':
             try:
                 # Return active and recent alerts, sorted by severity then creation date
                 return SystemAlert.objects.all().order_by('-severity', '-created_at')[:20]
@@ -1208,6 +1149,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        if getattr(self, 'swagger_fake_view', False) or not getattr(user, 'is_authenticated', False):
+            return Notification.objects.none()
         queryset = Notification.objects.filter(user=user).order_by('-created_at')
         read_param = self.request.query_params.get('read', None)
         if read_param is not None:

@@ -32,9 +32,41 @@ function _getStorage() {
 let _isRefreshing = false;
 let _refreshPromise = null;
 let _onAuthFailure = null;
+let _backendStatus = { unavailable: false, status: null, message: '' };
+const _backendStatusSubscribers = new Set();
 
 export function setAuthFailureHandler(fn) {
   _onAuthFailure = fn;
+}
+
+function _emitBackendStatus() {
+  _backendStatusSubscribers.forEach((subscriber) => {
+    try { subscriber(_backendStatus); } catch (error) { console.error('backend status subscriber failed', error); }
+  });
+}
+
+function _setBackendStatus(nextStatus) {
+  const changed = (
+    _backendStatus.unavailable !== nextStatus.unavailable ||
+    _backendStatus.status !== nextStatus.status ||
+    _backendStatus.message !== nextStatus.message
+  );
+  _backendStatus = nextStatus;
+  if (changed) _emitBackendStatus();
+}
+
+export function subscribeBackendStatus(fn) {
+  _backendStatusSubscribers.add(fn);
+  try { fn(_backendStatus); } catch (error) { console.error('backend status subscriber failed', error); }
+  return () => _backendStatusSubscribers.delete(fn);
+}
+
+export function getBackendStatus() {
+  return _backendStatus;
+}
+
+export async function getBackendHealth() {
+  return await request('/health', { method: 'GET', skipAuth: true });
 }
 
 async function refreshToken() {
@@ -91,7 +123,15 @@ export async function request(path, options = {}) {
     const opts = Object.assign({}, options);
     delete opts.skipAuth;
 
-    const res = await fetch(BASE + path, Object.assign({}, opts, { headers }));
+    let res;
+    try {
+      res = await fetch(BASE + path, Object.assign({}, opts, { headers }));
+    } catch (error) {
+      const err = new Error('Network request failed');
+      err.status = 0;
+      err.cause = error;
+      throw err;
+    }
     let data = null;
     try { data = await res.json(); } catch (e) { data = null; }
     return { res, data };
@@ -124,6 +164,16 @@ export async function request(path, options = {}) {
     }
   }
 
+  if (res.status === 503) {
+    _setBackendStatus({
+      unavailable: true,
+      status: 503,
+      message: data?.detail || 'Backend unavailable',
+    });
+  } else if (res.ok && _backendStatus.unavailable) {
+    _setBackendStatus({ unavailable: false, status: null, message: '' });
+  }
+
   if (!res.ok) {
     const err = new Error(data && data.detail ? data.detail : `HTTP ${res.status}`);
     err.status = res.status;
@@ -137,10 +187,13 @@ export async function request(path, options = {}) {
 export async function login(email, password) {
   // Clear any existing auth before attempting login to avoid stale sessions
   logout();
-  // Backend TokenObtainPair expects `username` (not full email).
-  // Register uses the local-part of the email as username, so replicate that here.
-  const username = email && email.includes('@') ? email.split('@')[0] : email;
-  const body = JSON.stringify({ email, username, password });
+  const loginId = (email || '').trim();
+  const looksLikeEmail = loginId.includes('@');
+  const body = JSON.stringify(
+    looksLikeEmail
+      ? { email: loginId, password }
+      : { username: loginId, password }
+  );
   // Skip attaching previous Authorization header for auth endpoints
   const data = await request('/auth/login', { method: 'POST', body, skipAuth: true });
 
@@ -229,7 +282,14 @@ export async function getLibraryItems(filters = {}) {
 }
 
 export async function createLibraryItem(payload) {
-  return await request('/library', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+  const opts = {};
+  if (payload instanceof FormData) {
+    opts.body = payload;
+  } else {
+    opts.body = JSON.stringify(payload);
+    opts.headers = { 'Content-Type': 'application/json' };
+  }
+  return await request('/library', { method: 'POST', ...opts });
 }
 
 export async function recordLibraryDownload(id) {
@@ -240,7 +300,14 @@ export async function recordLibraryDownload(id) {
 
 export async function updateLibraryItem(id, payload) {
   if (!id) throw new Error('Missing library item id');
-  return await request(`/library/${id}`, { method: 'PUT', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+  const opts = {};
+  if (payload instanceof FormData) {
+    opts.body = payload;
+  } else {
+    opts.body = JSON.stringify(payload);
+    opts.headers = { 'Content-Type': 'application/json' };
+  }
+  return await request(`/library/${id}`, { method: 'PUT', ...opts });
 }
 
 export async function deleteLibraryItem(id) {
@@ -415,7 +482,166 @@ export async function updateLiveClass(id, payload) {
 
 
 export async function updateCourse(id, payload) {
-  return await request(`/courses/${id}/`, { method: 'PATCH', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
+  const opts = {};
+  if (payload instanceof FormData) {
+    opts.body = payload;
+  } else {
+    opts.body = JSON.stringify(payload);
+    opts.headers = { 'Content-Type': 'application/json' };
+  }
+  return await request(`/courses/${id}/`, { method: 'PATCH', ...opts });
+}
+
+export async function getForumThreads(courseId) {
+  const data = await request(`/forum/threads/?course=${encodeURIComponent(courseId)}`);
+  if (data && data.results) return data.results;
+  return data || [];
+}
+
+export async function createForumThread(payload) {
+  return await request('/forum/threads/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function createForumPost(threadId, payload) {
+  return await request(`/forum/threads/${threadId}/posts/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function getForumPosts(threadId) {
+  const data = await request(`/forum/posts/?thread=${encodeURIComponent(threadId)}`);
+  if (data && data.results) return data.results;
+  return data || [];
+}
+
+export async function toggleForumThreadPin(threadId) {
+  return await request(`/forum/threads/${threadId}/pin/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function toggleForumThreadLock(threadId) {
+  return await request(`/forum/threads/${threadId}/lock/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function toggleForumThreadResolve(threadId) {
+  return await request(`/forum/threads/${threadId}/resolve/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function toggleForumThreadHide(threadId) {
+  return await request(`/forum/threads/${threadId}/hide/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function subscribeForumThread(threadId) {
+  return await request(`/forum/threads/${threadId}/subscribe/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function unsubscribeForumThread(threadId) {
+  return await request(`/forum/threads/${threadId}/unsubscribe/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function toggleForumPostHide(postId) {
+  return await request(`/forum/posts/${postId}/hide/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function createForumReport(payload) {
+  return await request('/forum/reports/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function getGames() {
+  const data = await request('/games/');
+  if (data && data.results) return data.results;
+  return data || [];
+}
+
+export async function getGame(slug) {
+  return await request(`/games/${slug}/`);
+}
+
+export async function startGameSession(slug, assignmentId = null) {
+  return await request(`/games/${slug}/start/`, {
+    method: 'POST',
+    body: JSON.stringify(assignmentId ? { assignment_id: assignmentId } : {}),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function submitGameAttempt(slug, payload) {
+  return await request(`/games/${slug}/submit/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function getGameLeaderboard(slug, assignmentId = null) {
+  const qs = assignmentId ? `?assignment_id=${encodeURIComponent(assignmentId)}` : '';
+  const data = await request(`/games/${slug}/leaderboard/${qs}`);
+  if (data && data.results) return data.results;
+  return data || [];
+}
+
+export async function getGameAssignments() {
+  const data = await request('/game-assignments/');
+  if (data && data.results) return data.results;
+  return data || [];
+}
+
+export async function createGameAssignment(payload) {
+  return await request('/game-assignments/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function updateGameAssignment(id, payload) {
+  if (!id) throw new Error('Missing game assignment id');
+  return await request(`/game-assignments/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export async function deleteGameAssignment(id) {
+  if (!id) throw new Error('Missing game assignment id');
+  return await request(`/game-assignments/${id}/`, { method: 'DELETE' });
+}
+
+export async function getGameBadges() {
+  const data = await request('/game-badges/');
+  if (data && data.results) return data.results;
+  return data || [];
 }
 
 export async function getLectures(courseId) {
@@ -735,4 +961,28 @@ export default {
   checkEnrollment,
   getCourseRatings,
   rateCourse,
+  getForumThreads,
+  getForumPosts,
+  createForumThread,
+  createForumPost,
+  toggleForumThreadPin,
+  toggleForumThreadLock,
+  toggleForumThreadResolve,
+  toggleForumThreadHide,
+  subscribeForumThread,
+  unsubscribeForumThread,
+  toggleForumPostHide,
+  createForumReport,
+  getGames,
+  getGame,
+  startGameSession,
+  submitGameAttempt,
+  getGameLeaderboard,
+  getGameAssignments,
+  createGameAssignment,
+  updateGameAssignment,
+  deleteGameAssignment,
+  getGameBadges,
+  getBackendHealth,
+  subscribeBackendStatus,
 };

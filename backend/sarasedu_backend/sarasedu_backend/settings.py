@@ -37,10 +37,20 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
     'storages',
     'django_filters',
     'core',
+    'accounts',
+    'courses',
+    'content',
+    'assessments',
+    'communications',
+    'media_assets',
+    'ai',
+    'forum',
+    'games',
 ]
 
 MIDDLEWARE = [
@@ -180,6 +190,7 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'PAGE_SIZE': 20,
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
@@ -190,6 +201,16 @@ REST_FRAMEWORK = {
         'user': '2000/day',
         'ai_chat': '30/minute'
     }
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'SarasEdu API',
+    'DESCRIPTION': 'OpenAPI schema for the SarasEdu LMS platform.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
 }
 
 TEST_RUNNER = 'sarasedu_backend.test_runner.DefaultAppDiscoverRunner'

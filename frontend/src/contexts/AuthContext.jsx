@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api, { setAuthFailureHandler } from '../services/api';
 import { toast } from 'sonner';
+import { useAuthStore } from '../stores/auth-store';
 
 const AuthContext = createContext(null);
 
@@ -19,17 +20,15 @@ export const useAuth = () => {
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = (typeof localStorage !== 'undefined') ? localStorage.getItem('user') : null;
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch (e) {
-      if (!isStorageBlockedError(e)) console.warn('localStorage.getItem failed during AuthContext init', e);
-      return null;
-    }
-  });
+  const user = useAuthStore((state) => state.user);
+  const loading = useAuthStore((state) => state.loading);
+  const setUser = useAuthStore((state) => state.setUser);
+  const setLoading = useAuthStore((state) => state.setLoading);
+  const hydrateUser = useAuthStore((state) => state.hydrateUser);
 
-  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    hydrateUser();
+  }, [hydrateUser]);
 
   useEffect(() => {
     // If we have an access token but no user, try to fetch /auth/me
@@ -76,6 +75,10 @@ export function AuthProvider({ children }) {
       // api.login stores tokens and user in localStorage
       if (data && data.user) setUser(data.user);
       return data;
+    } catch (error) {
+      const message = error?.data?.detail || error?.message || 'Unable to sign in';
+      toast.error(message);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -92,6 +95,10 @@ export function AuthProvider({ children }) {
       const data = await api.register({ name, email, password, role });
       if (data && data.user) setUser(data.user);
       return data;
+    } catch (error) {
+      const message = error?.data?.detail || error?.message || 'Unable to register';
+      toast.error(message);
+      throw error;
     } finally {
       setLoading(false);
     }

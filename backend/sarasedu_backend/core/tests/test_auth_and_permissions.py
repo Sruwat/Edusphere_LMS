@@ -33,6 +33,16 @@ class AuthAndPermissionTests(TestCase):
         self.assertIn('refresh', response.data)
         self.assertEqual(response.data['user']['username'], 'student1')
 
+    def test_login_accepts_email_identifier(self):
+        response = self.client.post(
+            '/api/auth/login',
+            {'email': 'student1@example.com', 'password': 'StrongPass123!'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['user']['email'], 'student1@example.com')
+
     def test_user_list_requires_authentication(self):
         response = self.client.get('/api/users')
         self.assertIn(response.status_code, (401, 403))

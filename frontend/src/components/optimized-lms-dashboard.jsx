@@ -57,6 +57,8 @@ const EnhancedTestSystem = lazy(() => import('./enhanced-test-system').then(modu
 const LiveClasses = lazy(() => import('./live-classes').then(module => ({ default: module.LiveClasses })));
 const AttendanceManagement = lazy(() => import('./attendance-management').then(module => ({ default: module.AttendanceManagement })));
 const GamesHub = lazy(() => import('./games-hub').then(module => ({ default: module.GamesHub })));
+const GamePlayer = lazy(() => import('./game-player.jsx').then(module => ({ default: module.GamePlayer })));
+const GamesLeaderboard = lazy(() => import('./games-leaderboard.jsx').then(module => ({ default: module.GamesLeaderboard })));
 const AnalyticsDashboard = lazy(() => import('./analytics-dashboard').then(module => ({ default: module.AnalyticsDashboard })));
 const UserManagement = lazy(() => import('./user-management').then(module => ({ default: module.UserManagement })));
 const AnnouncementsSystem = lazy(() => import('./announcements-system').then(module => ({ default: module.AnnouncementsSystem })));
@@ -719,6 +721,8 @@ export function OptimizedLMSDashboard() {
             <Route path="live-classes" element={renderLazyRoute(LiveClasses, { userRole })} />
             <Route path="attendance" element={renderLazyRoute(AttendanceManagement, { userRole })} />
             <Route path="games" element={renderLazyRoute(GamesHub)} />
+            <Route path="games/:slug" element={renderLazyRoute(GamePlayer)} />
+            <Route path="games/leaderboard" element={renderLazyRoute(GamesLeaderboard)} />
             <Route path="analytics" element={renderLazyRoute(AnalyticsDashboard, { userRole, userId })} />
             <Route path="students" element={renderLazyRoute(UserManagement, { userType: userRole === 'teacher' ? 'teacher' : 'student', onSelectStudent: setSelectedStudent, currentUser: user })} />
             <Route path="user-management" element={renderLazyRoute(UserManagement, { userType: 'all', currentUser: user })} />

@@ -12,6 +12,7 @@ import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { useLibraryItemsQuery, useSaveLibraryItemMutation } from '../features/library/queries';
 import { 
   Search, 
   Filter, 
@@ -49,6 +50,7 @@ export function EnhancedLibrary() {
     description: '',
     file_url: '',
     thumbnail_url: '',
+    thumbnail_file: null,
     file_size_kb: '',
     duration_minutes: '',
     pages: '',
@@ -60,6 +62,8 @@ export function EnhancedLibrary() {
   const [chatMessages, setChatMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const resources = [];
+  const { data: queriedLibraryItems = [] } = useLibraryItemsQuery();
+  const saveLibraryItemMutation = useSaveLibraryItemMutation();
 
   // Allow overriding API base during dev with Vite env var VITE_API_BASE
   const API_BASE = (import.meta.env?.VITE_API_BASE || '').replace(/\/+$|^\s+|\s+$/g, '');
@@ -74,18 +78,8 @@ export function EnhancedLibrary() {
   };
 
   useEffect(() => {
-    // Fetch library items via centralized API helper (uses configured BASE)
-    const fetchItems = async () => {
-      try {
-        const items = await api.getLibraryItems();
-        setLibraryItems(items || []);
-      } catch (err) {
-        console.warn('Failed to load library items', err);
-        setLibraryItems([]);
-      }
-    };
-    fetchItems();
-  }, []);
+    setLibraryItems(queriedLibraryItems || []);
+  }, [queriedLibraryItems]);
 
   const openAddModal = () => {
     setForm({
@@ -98,6 +92,7 @@ export function EnhancedLibrary() {
       description: '',
       file_url: '',
       thumbnail_url: '',
+      thumbnail_file: null,
       file_size_kb: '',
       duration_minutes: '',
       pages: '',
@@ -120,6 +115,7 @@ export function EnhancedLibrary() {
       description: item.description || '',
       file_url: item.file_url || '',
       thumbnail_url: item.thumbnail_url || '',
+      thumbnail_file: null,
       file_size_kb: item.file_size_kb || '',
       duration_minutes: item.duration_minutes || '',
       pages: item.pages || '',
@@ -135,7 +131,7 @@ export function EnhancedLibrary() {
     // Normalize payload: convert empty strings to null where appropriate and
     // ensure numeric fields are numbers so DRF IntegerField/FloatField validation passes.
     const rawTags = form.tags || '';
-    const payload = Object.assign({}, form, {
+    const normalizedPayload = Object.assign({}, form, {
       tags: rawTags.split(',').map(t => t.trim()).filter(Boolean),
       course_id: form.course_id ? Number(form.course_id) : null,
       file_size_kb: form.file_size_kb !== '' && form.file_size_kb !== null ? Number(form.file_size_kb) : null,
@@ -144,12 +140,23 @@ export function EnhancedLibrary() {
       is_featured: !!form.is_featured,
     });
     try {
+      let payload = normalizedPayload;
+      if (form.thumbnail_file) {
+        payload = new FormData();
+        Object.entries(normalizedPayload).forEach(([key, value]) => {
+          if (key === 'thumbnail_file' || key === 'id') return;
+          if (value === null || value === undefined) return;
+          payload.append(key, Array.isArray(value) ? value.join(',') : value);
+        });
+        payload.append('thumbnail', form.thumbnail_file);
+      }
+
       if (isEditing && form.id) {
-        const updated = await api.updateLibraryItem(form.id, payload);
+        const updated = await saveLibraryItemMutation.mutateAsync({ id: form.id, payload });
         setLibraryItems(prev => prev.map(it => it.id === updated.id ? updated : it));
         toast.success('Library item updated');
       } else {
-        const created = await api.createLibraryItem(payload);
+        const created = await saveLibraryItemMutation.mutateAsync({ payload });
         setLibraryItems(prev => [created, ...prev]);
         toast.success('Library item added');
       }
@@ -576,8 +583,11 @@ export function EnhancedLibrary() {
             <Label>File URL</Label>
             <Input value={form.file_url} onChange={(e) => setForm(prev => ({ ...prev, file_url: e.target.value }))} />
 
+            <Label>Thumbnail Image</Label>
+            <Input type="file" accept="image/*" onChange={(e) => setForm(prev => ({ ...prev, thumbnail_file: e.target.files?.[0] || null }))} />
+
             <Label>Thumbnail URL</Label>
-            <Input value={form.thumbnail_url} onChange={(e) => setForm(prev => ({ ...prev, thumbnail_url: e.target.value }))} />
+            <Input value={form.thumbnail_url} onChange={(e) => setForm(prev => ({ ...prev, thumbnail_url: e.target.value }))} placeholder="Optional external fallback" />
 
             <div className="grid grid-cols-3 gap-3">
               <div>

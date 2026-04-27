@@ -724,3 +724,142 @@
     min-height: auto;
   }
 }
+
+@media (max-width: 640px) {
+  .landing-shell {
+    width: min(100% - 16px, 1200px);
+    padding: 12px 0 44px;
+  }
+
+  .landing-header {
+    gap: 16px;
+    padding: 14px;
+    border-radius: 22px;
+  }
+
+  .landing-brand {
+    align-items: flex-start;
+  }
+
+  .landing-brand-name {
+    font-size: 0.98rem;
+  }
+
+  .landing-brand-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .landing-nav {
+    gap: 14px;
+    font-size: 0.88rem;
+  }
+
+  .landing-btn {
+    width: 100%;
+  }
+
+  .landing-hero {
+    padding: 28px 0 18px;
+    gap: 24px;
+  }
+
+  .landing-badge {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .landing-hero-copy h1 {
+    margin: 16px 0 14px;
+    max-width: none;
+    font-size: clamp(2.15rem, 12vw, 3.2rem);
+  }
+
+  .landing-hero-copy p {
+    font-size: 0.96rem;
+    line-height: 1.72;
+  }
+
+  .landing-stat-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .landing-stat {
+    min-width: 0;
+  }
+
+  .hero-window,
+  .landing-section-panel,
+  .landing-feature-story,
+  .landing-proof-band,
+  .landing-cta-card,
+  .landing-card,
+  .workflow-card {
+    border-radius: 24px;
+  }
+
+  .hero-window-top,
+  .hero-dashboard-grid,
+  .landing-section-panel,
+  .landing-feature-story,
+  .landing-proof-band,
+  .landing-cta-card {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero-dashboard-grid {
+    padding-bottom: 16px;
+  }
+
+  .hero-panel,
+  .landing-card,
+  .workflow-card {
+    padding: 18px;
+  }
+
+  .hero-panel-xl {
+    min-height: 220px;
+  }
+
+  .hero-bars {
+    height: 110px;
+    margin-top: 18px;
+  }
+
+  .landing-section {
+    padding-top: 30px;
+  }
+
+  .landing-section-head {
+    margin-bottom: 20px;
+  }
+
+  .landing-section-head h2,
+  .landing-proof-copy h2,
+  .landing-cta-card h2 {
+    font-size: clamp(1.7rem, 9vw, 2.4rem);
+  }
+}
+
+@media (max-width: 420px) {
+  .landing-header-actions {
+    gap: 10px;
+  }
+
+  .landing-btn,
+  .landing-btn-large {
+    padding: 0.9rem 1rem;
+  }
+
+  .landing-badge {
+    font-size: 0.8rem;
+  }
+
+  .landing-proof-band,
+  .landing-cta-card {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+}

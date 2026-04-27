@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import * as api from '../services/api';
+import { useAssignmentsQuery } from '../features/assignments/queries';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -60,10 +61,11 @@ export function AssignmentSystem({ userRole }) {
 
   // Assignments state (fetched from API)
   const [assignments, setAssignments] = useState([]);
+  const { data: queriedAssignments = [], refetch: refetchAssignments } = useAssignmentsQuery();
 
   const fetchAssignments = async () => {
     try {
-      const data = await api.getAssignments();
+      const data = queriedAssignments;
       // Use the server-provided status and due_date as-is (show DB values)
       const arr = data || [];
       setAssignments(arr);
@@ -144,6 +146,10 @@ export function AssignmentSystem({ userRole }) {
       setAssignments([]);
     }
   };
+
+  useEffect(() => {
+    fetchAssignments();
+  }, [queriedAssignments]);
 
     // submission dialog opens: no additional data required (device-only uploads)
 

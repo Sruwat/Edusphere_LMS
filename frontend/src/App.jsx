@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { LoginScreen } from './components/login-screen';
 import { LandingHome } from './components/landing-home';
 import { OptimizedLMSDashboard } from './components/optimized-lms-dashboard';
+import { getBackendStatus, subscribeBackendStatus } from './services/api';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -58,10 +59,19 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [backendStatus, setBackendStatus] = useState(getBackendStatus());
+
+  useEffect(() => subscribeBackendStatus(setBackendStatus), []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
         <div className="min-h-screen bg-background">
+          {backendStatus.unavailable && (
+            <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+              Backend unavailable right now. Some live features may not load until the server recovers.
+            </div>
+          )}
           <AppRoutes />
         </div>
       </AuthProvider>

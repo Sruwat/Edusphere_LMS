@@ -28,3 +28,8 @@ backend/__pycache__/
 backend/sarasedu_backend/**/__pycache__/
 backend/test.sqlite3
 backend/staticfiles/
+backend/media/notes_*.pdf
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/

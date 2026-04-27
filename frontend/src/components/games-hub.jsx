@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -23,11 +23,22 @@ import {
   Search,
   Filter
 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useGamesQuery } from '../features/games/queries';
+import { useGamesStore } from '../stores/games-store';
+import api from '../services/api';
 
 export function GamesHub() {
+  const navigate = useNavigate();
+  const { role, username } = useParams();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+  const { data: educationalGames = [] } = useGamesQuery();
+  const setStats = useGamesStore((state) => state.setStats);
+  const [gameAssignments, setGameAssignments] = useState([]);
+  const [assignmentForm, setAssignmentForm] = useState({ game_id: '', course_id: '', title: '', due_date: '', max_attempts: '3', scoring_weight: '0' });
+  const [courses, setCourses] = useState([]);
 
   const gameCategories = [
     { id: 'all', name: 'All Games', icon: Gamepad2 },
@@ -38,18 +49,50 @@ export function GamesHub() {
     { id: 'logic', name: 'Logic & Puzzles', icon: Brain }
   ];
 
-  // Sample data removed - fetch from API in production
-  const educationalGames = [];
+  const normalizedGames = useMemo(() => educationalGames.map((game) => ({
+    ...game,
+    image: game.icon || '🎮',
+    rating: game.rating || '4.8',
+    badges: game.badges || [game.category, `${game.estimated_minutes || 10} min`],
+    duration: game.duration || `${game.estimated_minutes || 10} min`,
+    players: game.players || 'Single',
+    progress: game.progress || 0,
+    completedBy: game.completedBy || 0,
+    lastPlayed: game.lastPlayed || 'Never',
+  })), [educationalGames]);
 
-  const playerStats = {
-    totalGamesPlayed: 0,
-    totalHoursPlayed: 0,
+  const playerStats = useMemo(() => ({
+    totalGamesPlayed: normalizedGames.length,
+    totalHoursPlayed: normalizedGames.reduce((sum, game) => sum + ((game.estimated_minutes || 0) / 60), 0).toFixed(1),
     averageScore: 0,
     currentStreak: 0,
     achievements: 0,
     rank: 0,
-    favoriteCategory: 'None'
-  };
+    favoriteCategory: normalizedGames[0]?.category || 'None'
+  }), [normalizedGames]);
+
+  useEffect(() => {
+    setStats({ totalGamesPlayed: normalizedGames.length, averageScore: 0 });
+  }, [normalizedGames, setStats]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadMeta() {
+      try {
+        const [assignments, availableCourses] = await Promise.all([
+          api.getGameAssignments(),
+          (role === 'teacher' || role === 'admin') ? api.getCourses() : Promise.resolve([]),
+        ]);
+        if (!mounted) return;
+        setGameAssignments(assignments || []);
+        setCourses(availableCourses || []);
+      } catch (error) {
+        console.warn('Failed to load game assignments', error);
+      }
+    }
+    loadMeta();
+    return () => { mounted = false; };
+  }, [role]);
 
   const recentAchievements = [];
 
@@ -62,7 +105,7 @@ export function GamesHub() {
     }
   };
 
-  const filteredGames = educationalGames.filter(game => {
+  const filteredGames = normalizedGames.filter(game => {
     const matchesCategory = selectedCategory === 'all' || game.category === selectedCategory;
     const matchesDifficulty = selectedDifficulty === 'all' || game.difficulty === selectedDifficulty;
     const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -143,6 +186,74 @@ export function GamesHub() {
           </CardContent>
         </Card>
       </div>
+
+      {(role === 'teacher' || role === 'admin') && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Assign Games To Courses</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2">
+            <Select value={assignmentForm.game_id} onValueChange={(value) => setAssignmentForm((prev) => ({ ...prev, game_id: value }))}>
+              <SelectTrigger><SelectValue placeholder="Select game" /></SelectTrigger>
+              <SelectContent>
+                {normalizedGames.map((game) => (
+                  <SelectItem key={game.id} value={String(game.id)}>{game.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={assignmentForm.course_id} onValueChange={(value) => setAssignmentForm((prev) => ({ ...prev, course_id: value }))}>
+              <SelectTrigger><SelectValue placeholder="Select course" /></SelectTrigger>
+              <SelectContent>
+                {courses.map((course) => (
+                  <SelectItem key={course.id} value={String(course.id)}>{course.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input placeholder="Assignment title" value={assignmentForm.title} onChange={(e) => setAssignmentForm((prev) => ({ ...prev, title: e.target.value }))} />
+            <Input type="datetime-local" value={assignmentForm.due_date} onChange={(e) => setAssignmentForm((prev) => ({ ...prev, due_date: e.target.value }))} />
+            <Input type="number" min="1" placeholder="Max attempts" value={assignmentForm.max_attempts} onChange={(e) => setAssignmentForm((prev) => ({ ...prev, max_attempts: e.target.value }))} />
+            <Input type="number" min="0" step="0.01" placeholder="Scoring weight" value={assignmentForm.scoring_weight} onChange={(e) => setAssignmentForm((prev) => ({ ...prev, scoring_weight: e.target.value }))} />
+            <div className="md:col-span-2">
+              <Button
+                onClick={async () => {
+                  await api.createGameAssignment({
+                    game_id: Number(assignmentForm.game_id),
+                    course_id: Number(assignmentForm.course_id),
+                    title: assignmentForm.title,
+                    due_date: assignmentForm.due_date ? new Date(assignmentForm.due_date).toISOString() : null,
+                    max_attempts: Number(assignmentForm.max_attempts || 3),
+                    scoring_weight: Number(assignmentForm.scoring_weight || 0),
+                    leaderboard_visibility: 'course',
+                  });
+                  const assignments = await api.getGameAssignments();
+                  setGameAssignments(assignments || []);
+                  setAssignmentForm({ game_id: '', course_id: '', title: '', due_date: '', max_attempts: '3', scoring_weight: '0' });
+                }}
+              >
+                Create Game Assignment
+              </Button>
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              {gameAssignments.map((assignment) => (
+                <div key={assignment.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+                  <div>
+                    <p className="font-medium">{assignment.title}</p>
+                    <p className="text-muted-foreground">
+                      {assignment.game?.title} • {assignment.course?.title}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={async () => {
+                    await api.deleteGameAssignment(assignment.id);
+                    setGameAssignments((prev) => prev.filter((item) => item.id !== assignment.id));
+                  }}>
+                    Remove
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Achievements */}
       <Card>
@@ -293,7 +404,7 @@ export function GamesHub() {
                     <p>{game.completedBy.toLocaleString()} completed</p>
                     <p>Last played: {game.lastPlayed}</p>
                   </div>
-                  <Button size="sm" className="ml-2">
+                  <Button size="sm" className="ml-2" onClick={() => navigate(`/${role}/${username}/games/${game.slug}`)}>
                     <Play className="h-4 w-4 mr-1" />
                     {game.progress > 0 ? 'Continue' : 'Play'}
                   </Button>

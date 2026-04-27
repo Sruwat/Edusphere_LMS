@@ -24,6 +24,7 @@ import { EnhancedCourseCreation } from './enhanced-course-creation';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { useCoursesQuery } from '../features/courses/queries';
 
 // Props/types removed for JS build. Courses should be fetched from an API.
 export function SimpleCourses({ userRole }) {
@@ -40,6 +41,7 @@ export function SimpleCourses({ userRole }) {
   const [ratingDialogOpen, setRatingDialogOpen] = useState(null);
   const [tempRating, setTempRating] = useState(0);
   const [tempReview, setTempReview] = useState('');
+  const { data: queriedCourses = [], isLoading: coursesLoading } = useCoursesQuery();
   const apiBase = (
     import.meta.env?.VITE_API_BASE_URL ||
     import.meta.env?.VITE_API_BASE ||
@@ -54,7 +56,7 @@ export function SimpleCourses({ userRole }) {
     const fetchData = async () => {
       try {
         const [coursesData, enrollmentsData] = await Promise.all([
-          api.getCourses(),
+          Promise.resolve(queriedCourses),
           userRole === 'student' ? api.getEnrollments() : Promise.resolve([])
         ]);
         
@@ -123,7 +125,7 @@ export function SimpleCourses({ userRole }) {
     
     fetchData();
     return () => { mounted = false; };
-  }, [userRole, user]);
+  }, [userRole, user, queriedCourses]);
 
   const handleEnroll = async (courseId) => {
     if (!user || !user.id) {
@@ -256,7 +258,7 @@ export function SimpleCourses({ userRole }) {
 
       {/* Courses Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? (
+        {loading || coursesLoading ? (
           <div>Loading courses...</div>
         ) : filteredCourses.map((course) => (
           <Card key={course.id} className="hover:shadow-lg transition-shadow">

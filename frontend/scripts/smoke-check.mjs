@@ -10,13 +10,17 @@ function read(relativePath) {
 
 const appSource = read('src/App.jsx');
 const mainSource = read('src/main.jsx');
+const providersSource = read('src/app/providers.jsx');
 const loginScreenSource = read('src/components/login-screen.jsx');
 const dashboardSource = read('src/components/optimized-lms-dashboard.jsx');
 const apiSource = read('src/services/api.js');
 
 assert(appSource.includes('<LoginScreen />'), 'Login screen route is missing from App.jsx');
 assert(appSource.includes('<OptimizedLMSDashboard />'), 'Dashboard route is missing from App.jsx');
-assert(mainSource.includes('<BrowserRouter>'), 'App is not mounted inside BrowserRouter');
+assert(
+  mainSource.includes('<BrowserRouter>') || providersSource.includes('<BrowserRouter>'),
+  'App is not mounted inside BrowserRouter'
+);
 assert(loginScreenSource.toLowerCase().includes('login'), 'Login screen component content looks incomplete');
 assert(dashboardSource.includes('export') || dashboardSource.includes('function'), 'Dashboard component file looks invalid');
 assert(apiSource.includes("'/auth/login'"), 'Login API endpoint mapping is missing');

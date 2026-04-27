@@ -5,19 +5,23 @@ import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Bell, Trash2, CheckCircle, AlertCircle, Info, Clock, Loader } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  getNotifications, 
-  markNotificationAsRead, 
-  markAllNotificationsAsRead, 
-  deleteNotification, 
-  deleteAllNotifications 
-} from '../services/api';
+import {
+  useDeleteAllNotificationsMutation,
+  useDeleteNotificationMutation,
+  useMarkAllNotificationsAsReadMutation,
+  useMarkNotificationAsReadMutation,
+  useNotificationsQuery,
+} from '../features/notifications/queries';
 
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const { data, isLoading: loading, refetch } = useNotificationsQuery({ limit: 50 });
+  const markReadMutation = useMarkNotificationAsReadMutation();
+  const markAllMutation = useMarkAllNotificationsAsReadMutation();
+  const deleteMutation = useDeleteNotificationMutation();
+  const deleteAllMutation = useDeleteAllNotificationsMutation();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -28,38 +32,35 @@ export function NotificationCenter() {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!data) return;
+    const mappedNotifications = (data.results || data || []).map(notif => {
+      let type = notif.notification_type || 'info';
+      if (type === 'success') type = 'success';
+      else if (type === 'error' || type === 'alert') type = 'alert';
+      else type = 'info';
+
+      return {
+        id: notif.id || Math.random(),
+        type,
+        title: notif.title || 'Notification',
+        message: notif.message || notif.description || '',
+        timestamp: new Date(notif.created_at || notif.timestamp || new Date()),
+        read: notif.is_read || notif.read || false,
+        notification_id: notif.id
+      };
+    });
+    setNotifications(mappedNotifications);
+  }, [data]);
+
   const fetchNotifications = async () => {
     try {
-      setLoading(true);
       setHasError(false);
-      const data = await getNotifications({ limit: 50 });
-      
-      // Map API response to notification format
-      const mappedNotifications = (data.results || data || []).map(notif => {
-        // Determine notification type based on content or type field
-        let type = notif.notification_type || 'info';
-        if (type === 'success') type = 'success';
-        else if (type === 'error' || type === 'alert') type = 'alert';
-        else type = 'info';
-
-        return {
-          id: notif.id || Math.random(),
-          type: type,
-          title: notif.title || 'Notification',
-          message: notif.message || notif.description || '',
-          timestamp: new Date(notif.created_at || notif.timestamp || new Date()),
-          read: notif.is_read || notif.read || false,
-          notification_id: notif.id
-        };
-      });
-
-      setNotifications(mappedNotifications);
+      await refetch();
     } catch (error) {
       console.error('Error fetching notifications:', error);
       setHasError(true);
       toast.error('Failed to load notifications');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -73,7 +74,7 @@ export function NotificationCenter() {
       );
       
       // Call API
-      await markNotificationAsRead(id);
+      await markReadMutation.mutateAsync(id);
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast.error('Failed to mark as read');
@@ -88,7 +89,7 @@ export function NotificationCenter() {
       setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
       
       // Call API
-      await markAllNotificationsAsRead();
+      await markAllMutation.mutateAsync();
       toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking all as read:', error);
@@ -104,7 +105,7 @@ export function NotificationCenter() {
       setNotifications(prev => prev.filter(notif => notif.id !== id));
       
       // Call API
-      await deleteNotification(id);
+      await deleteMutation.mutateAsync(id);
       toast.success('Notification deleted');
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -120,7 +121,7 @@ export function NotificationCenter() {
       setNotifications([]);
       
       // Call API
-      await deleteAllNotifications();
+      await deleteAllMutation.mutateAsync();
       toast.success('All notifications cleared');
     } catch (error) {
       console.error('Error clearing all notifications:', error);

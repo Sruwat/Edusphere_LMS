@@ -1,14 +1,9 @@
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
-import App from "./App.jsx";
+import { AppProviders } from "./app/providers.jsx";
 import "./index.css";
-import { Toaster } from 'sonner';
 
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <App />
-    <Toaster position="top-right" />
-  </BrowserRouter>
+  <AppProviders />
 );
 
 // Global error hooks: show a toast and log to console (lightweight fallback for Sentry)
@@ -33,5 +28,4 @@ window.addEventListener('submit', (e) => {
     // ignore
   }
 }, true);
-
 

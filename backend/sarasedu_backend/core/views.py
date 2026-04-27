@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.files.storage import default_storage
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseForbidden, StreamingHttpResponse
 from django.utils import timezone
@@ -19,16 +19,21 @@ from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema, inline_serializer
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import Assignment, AssignmentSubmission, Lecture, LibraryDownload, LibraryItem
 from .serializers import (
     AssignmentSubmissionSerializer,
+    EmailOrUsernameTokenObtainPairSerializer,
     LectureSerializer,
     LibraryItemSerializer,
     RegisterSerializer,
@@ -40,9 +45,55 @@ User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
+class HealthView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        responses={200: inline_serializer(
+            name='HealthResponse',
+            fields={
+                'status': serializers.CharField(),
+                'app': serializers.CharField(),
+                'database': serializers.CharField(),
+                'timestamp': serializers.DateTimeField(),
+                'detail': serializers.CharField(required=False),
+            },
+        )}
+    )
+    def get(self, request, *args, **kwargs):
+        payload = {
+            'status': 'ok',
+            'app': 'ok',
+            'database': 'ok',
+            'timestamp': timezone.now(),
+        }
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+                cursor.fetchone()
+        except Exception:
+            logger.exception('Health check database probe failed')
+            payload.update({
+                'status': 'degraded',
+                'database': 'error',
+                'detail': 'Database unavailable',
+            })
+            return Response(payload, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(payload, status=status.HTTP_200_OK)
+
+
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = (permissions.AllowAny,)
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={201: inline_serializer(
+            name='RegisterResponse',
+            fields={'token': serializers.CharField(), 'user': serializers.JSONField()}
+        )}
+    )
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -57,31 +108,60 @@ class RegisterView(generics.CreateAPIView):
         )
 
 
-@api_view(['GET', 'PUT', 'PATCH'])
-@permission_classes([permissions.IsAuthenticated])
-def me(request):
-    if request.method == 'GET':
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(responses={200: UserSerializer})
+    def get(self, request, *args, **kwargs):
         return Response(UserSerializer(request.user).data)
 
-    serializer = UserSerializer(
-        request.user,
-        data=request.data,
-        partial=request.method == 'PATCH',
-    )
-    if serializer.is_valid():
+    @extend_schema(request=UserSerializer, responses={200: UserSerializer})
+    def put(self, request, *args, **kwargs):
+        serializer = UserSerializer(request.user, data=request.data)
+        serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(request=UserSerializer, responses={200: UserSerializer})
+    def patch(self, request, *args, **kwargs):
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """Return token pair and user details on login."""
+    serializer_class = EmailOrUsernameTokenObtainPairSerializer
+    @extend_schema(
+        request=inline_serializer(
+            name='LoginRequest',
+            fields={
+                'username': serializers.CharField(required=False),
+                'email': serializers.EmailField(required=False),
+                'password': serializers.CharField(),
+            },
+        ),
+        responses={200: inline_serializer(
+            name='LoginResponse',
+            fields={
+                'access': serializers.CharField(),
+                'refresh': serializers.CharField(),
+                'user': serializers.JSONField(),
+            },
+        )}
+    )
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if response.status_code == status.HTTP_200_OK and 'access' in response.data:
-            username = request.data.get('username') or request.data.get('email')
-            user = User.objects.filter(username=username).first()
+            username = request.data.get('username')
+            email = request.data.get('email')
+            user = None
+            if username:
+                user = User.objects.filter(username=username).first()
+            if not user and email:
+                user = User.objects.filter(email__iexact=email).first()
             if user:
                 user.last_login = timezone.now()
                 user.save(update_fields=['last_login'])
@@ -91,6 +171,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [permissions.AllowAny]
+    @extend_schema(
+        request=inline_serializer(name='PasswordResetRequest', fields={'email': serializers.EmailField()}),
+        responses={200: inline_serializer(name='PasswordResetRequestResponse', fields={'detail': serializers.CharField()})}
+    )
 
     def post(self, request, *args, **kwargs):
         from .serializers import PasswordResetRequestSerializer
@@ -124,6 +208,17 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
+    @extend_schema(
+        request=inline_serializer(
+            name='PasswordResetConfirmRequest',
+            fields={
+                'uid': serializers.CharField(),
+                'token': serializers.CharField(),
+                'new_password': serializers.CharField(),
+            },
+        ),
+        responses={200: inline_serializer(name='PasswordResetConfirmResponse', fields={'detail': serializers.CharField()})}
+    )
 
     def post(self, request, *args, **kwargs):
         from .serializers import PasswordResetConfirmSerializer
@@ -150,6 +245,13 @@ class PasswordResetConfirmView(APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    @extend_schema(
+        request=inline_serializer(
+            name='ChangePasswordRequest',
+            fields={'old_password': serializers.CharField(), 'new_password': serializers.CharField()},
+        ),
+        responses={200: inline_serializer(name='ChangePasswordResponse', fields={'detail': serializers.CharField()})}
+    )
 
     def post(self, request):
         from .serializers import ChangePasswordSerializer
@@ -169,6 +271,10 @@ class ChangePasswordView(APIView):
 class AIChatView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [AIChatRateThrottle]
+    @extend_schema(
+        request=inline_serializer(name='AIChatRequest', fields={'message': serializers.CharField()}),
+        responses={200: inline_serializer(name='AIChatResponse', fields={'content': serializers.CharField()})}
+    )
 
     def post(self, request, *args, **kwargs):
         message = request.data.get('message')
@@ -211,6 +317,7 @@ class AIChatView(APIView):
 class AIHealthView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request, *args, **kwargs):
         openrouter_key = os.environ.get('OPENROUTER_API_KEY')
         openrouter_base = os.environ.get('OPENROUTER_API_URL', 'https://openrouter.ai/api').rstrip('/')
@@ -242,6 +349,7 @@ class AIHealthView(APIView):
 
 class CourseLecturesView(APIView):
     permission_classes = [permissions.AllowAny]
+    @extend_schema(responses={200: LectureSerializer(many=True)})
 
     def get(self, request, id, *args, **kwargs):
         lectures = Lecture.objects.filter(course_id=id).order_by('order_index')
@@ -256,6 +364,7 @@ class UserListView(generics.ListAPIView):
 
 class UserDetailView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    @extend_schema(responses={200: UserSerializer})
 
     def get(self, request, id, *args, **kwargs):
         try:
@@ -269,6 +378,8 @@ class LibraryListCreateView(generics.ListCreateAPIView):
     queryset = LibraryItem.objects.all().order_by('-upload_date')
     serializer_class = LibraryItemSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser]
+    @extend_schema(responses={200: LibraryItemSerializer(many=True), 201: LibraryItemSerializer})
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -283,6 +394,8 @@ class LibraryListCreateView(generics.ListCreateAPIView):
 
 class LibraryDetailView(APIView):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = LibraryItemSerializer
 
     def get_object(self, id):
         try:
@@ -320,6 +433,17 @@ class LibraryDetailView(APIView):
 
 class AssignmentSubmitView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    @extend_schema(
+        request=inline_serializer(
+            name='AssignmentSubmissionRequest',
+            fields={
+                'file': serializers.FileField(required=False),
+                'submission_text': serializers.CharField(required=False),
+            },
+        ),
+        responses={201: AssignmentSubmissionSerializer}
+    )
 
     def post(self, request, id, *args, **kwargs):
         try:
@@ -349,6 +473,10 @@ class AssignmentSubmitView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class DriveProxyView(APIView):
     permission_classes = []
+    @extend_schema(
+        parameters=[OpenApiParameter(name='url', type=OpenApiTypes.URI, location=OpenApiParameter.QUERY)],
+        responses={200: OpenApiResponse(description='Proxied video stream')}
+    )
 
     def get(self, request, *args, **kwargs):
         url = request.query_params.get('url')
@@ -400,6 +528,8 @@ class DriveProxyView(APIView):
 
 class LibraryDownloadView(APIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = LibraryItemSerializer
+    @extend_schema(responses={200: inline_serializer(name='LibraryDownloadResponse', fields={'total_downloads': serializers.IntegerField()})})
 
     def post(self, request, id, *args, **kwargs):
         try:
@@ -426,6 +556,14 @@ class LibraryDownloadView(APIView):
 
 class AIImageView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    @extend_schema(
+        request=inline_serializer(
+            name='AIImageRequest',
+            fields={'file': serializers.FileField(required=False), 'image': serializers.CharField(required=False), 'imageData': serializers.CharField(required=False)},
+        ),
+        responses={200: inline_serializer(name='AIImageResponse', fields={'description': serializers.CharField()})}
+    )
 
     def post(self, request, *args, **kwargs):
         if request.FILES.get('file'):
@@ -485,6 +623,11 @@ class AIImageView(APIView):
 
 class AITranscribeView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    @extend_schema(
+        request=inline_serializer(name='AITranscribeRequest', fields={'file': serializers.FileField()}),
+        responses={200: inline_serializer(name='AITranscribeResponse', fields={'text': serializers.CharField()})}
+    )
 
     def post(self, request, *args, **kwargs):
         file = request.FILES.get('file')

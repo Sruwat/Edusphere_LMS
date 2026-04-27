@@ -40,6 +40,7 @@ import {
       title: '',
       description: '',
       thumbnail_url: '',
+      thumbnail_file: null,
       category: '',
       level: '',
       duration: '',
@@ -96,19 +97,21 @@ import {
       setIsSaving(true);
       try {
         // map frontend fields to backend model names where needed
-        const payload = {
-          title: courseData.title,
-          subtitle: courseData.subtitle || '',
-          description: courseData.description,
-          thumbnail_url: courseData.thumbnail_url || '',
-          category: courseData.category,
-          level: courseData.level,
-          duration_weeks: courseData.duration || null,
-          language: courseData.language,
-          is_published: courseData.isPublished,
-          allow_discussions: courseData.allowDiscussions,
-          require_approval: courseData.requireApproval
-        };
+        const payload = new FormData();
+        payload.append('title', courseData.title);
+        payload.append('subtitle', courseData.subtitle || '');
+        payload.append('description', courseData.description || '');
+        payload.append('thumbnail_url', courseData.thumbnail_url || '');
+        payload.append('category', courseData.category || '');
+        payload.append('level', courseData.level || '');
+        payload.append('duration_weeks', courseData.duration || '');
+        payload.append('language', courseData.language || '');
+        payload.append('is_published', String(courseData.isPublished));
+        payload.append('allow_discussions', String(courseData.allowDiscussions));
+        payload.append('require_approval', String(courseData.requireApproval));
+        if (courseData.thumbnail_file) {
+          payload.append('thumbnail', courseData.thumbnail_file);
+        }
 
         const res = await api.createCourse(payload);
         // If API returned created course, persist nested content
@@ -219,13 +222,19 @@ import {
               />
             
               <div className="mt-3">
-                <Label htmlFor="thumbnail">Course Thumbnail (image URL)</Label>
+                <Label htmlFor="thumbnail">Course Thumbnail</Label>
                 <Input
                   id="thumbnail"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCourseData(prev => ({ ...prev, thumbnail_file: e.target.files?.[0] || null }))}
+                />
+                <Input
+                  className="mt-2"
                   type="text"
                   value={courseData.thumbnail_url}
                   onChange={(e) => setCourseData(prev => ({ ...prev, thumbnail_url: e.target.value }))}
-                  placeholder="https://example.com/thumbnail.jpg"
+                  placeholder="External image URL (optional fallback)"
                 />
               </div>
             </div>
