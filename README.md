@@ -8,7 +8,8 @@
 [![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](./ARCHITECTURE.md)
 [![Auth](https://img.shields.io/badge/Auth-JWT-F97316?style=for-the-badge)](./API.md)
 [![OpenAPI](https://img.shields.io/badge/API-OpenAPI%20%2F%20Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=111)](./API.md)
-[![Vercel Ready](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](./frontend/vercel.json)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-black?style=for-the-badge&logo=vercel)](https://edusphere-lms.vercel.app/)
+[![Vercel Ready](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](https://edusphere-lms.vercel.app/)
 [![Render Ready](https://img.shields.io/badge/Deploy-Render-5A3FFF?style=for-the-badge&logo=render&logoColor=white)](./render.yaml)
 [![License](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)](./LICENSE)
 
@@ -19,9 +20,9 @@ Edusphere LMS is a full-stack, role-based academic management system built for s
 - Repository: [github.com/Sruwat/Edusphere_LMS](https://github.com/Sruwat/Edusphere_LMS)
 - Architecture Guide: [ARCHITECTURE.md](ARCHITECTURE.md)
 - API Guide: [API.md](API.md)
+- Live frontend demo: [edusphere-lms.vercel.app](https://edusphere-lms.vercel.app/)
 - Frontend Deployment Target: `Vercel` via [frontend/vercel.json](frontend/vercel.json)
 - Backend Deployment Target: `Render` via [render.yaml](render.yaml)
-- Live frontend demo: add your Vercel domain here after deployment
 - Live backend API: add your Render domain here after deployment
 - Live Swagger docs: `https://your-backend-domain/api/docs/`
 
