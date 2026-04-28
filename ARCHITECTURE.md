@@ -301,6 +301,85 @@ flowchart TD
 - `games`
   Catalog, sessions, attempts, assignments, badges, and leaderboards.
 
+## Database ERD
+
+This ERD focuses on the major academic, discussion, and gamification relationships present in the current system.
+
+```mermaid
+erDiagram
+    USER ||--o| STUDENT_PROFILE : has
+    USER ||--o| TEACHER_PROFILE : has
+    USER ||--o| ADMIN_PROFILE : has
+
+    USER ||--o{ COURSE : teaches
+    COURSE ||--o{ LECTURE : contains
+    LECTURE ||--o{ LECTURE_MATERIAL : has
+    COURSE ||--o{ STUDY_MATERIAL : has
+
+    USER ||--o{ ENROLLMENT : owns
+    COURSE ||--o{ ENROLLMENT : receives
+
+    USER ||--o{ LECTURE_PROGRESS : tracks
+    LECTURE ||--o{ LECTURE_PROGRESS : updates
+
+    COURSE ||--o{ ASSIGNMENT : contains
+    ASSIGNMENT ||--o{ ASSIGNMENT_ATTACHMENT : has
+    ASSIGNMENT ||--o{ ASSIGNMENT_SUBMISSION : receives
+    USER ||--o{ ASSIGNMENT_SUBMISSION : submits
+
+    COURSE ||--o{ TEST : contains
+    TEST ||--o{ QUESTION : has
+    TEST ||--o{ TEST_SUBMISSION : receives
+    USER ||--o{ TEST_SUBMISSION : submits
+    TEST_SUBMISSION ||--o{ TEST_ANSWER : includes
+    QUESTION ||--o{ TEST_ANSWER : answers
+
+    COURSE ||--o{ ATTENDANCE_RECORD : records
+    USER ||--o{ ATTENDANCE_RECORD : has
+
+    COURSE o|--o{ LIBRARY_ITEM : references
+    USER ||--o{ LIBRARY_ITEM : uploads
+    USER ||--o{ LIBRARY_FAVORITE : bookmarks
+    LIBRARY_ITEM ||--o{ LIBRARY_FAVORITE : saved
+    USER ||--o{ LIBRARY_DOWNLOAD : downloads
+    LIBRARY_ITEM ||--o{ LIBRARY_DOWNLOAD : tracked
+
+    COURSE o|--o{ EVENT : schedules
+    COURSE o|--o{ LIVE_CLASS : hosts
+    USER o|--o{ LIVE_CLASS : instructs
+
+    COURSE ||--o{ FORUM_CATEGORY : groups
+    COURSE ||--o{ THREAD : contains
+    FORUM_CATEGORY o|--o{ THREAD : classifies
+    USER ||--o{ THREAD : creates
+    THREAD ||--o{ POST : contains
+    USER ||--o{ POST : writes
+    POST ||--o{ REACTION : receives
+    USER ||--o{ REACTION : leaves
+    POST ||--o{ REPORT : reported_in
+    USER ||--o{ REPORT : files
+    THREAD ||--o{ THREAD_SUBSCRIPTION : followed_by
+    USER ||--o{ THREAD_SUBSCRIPTION : subscribes
+
+    GAME ||--o{ GAME_ASSIGNMENT : assigned_as
+    COURSE ||--o{ GAME_ASSIGNMENT : includes
+    USER o|--o{ GAME_ASSIGNMENT : creates
+    GAME ||--o{ GAME_SESSION : starts
+    USER ||--o{ GAME_SESSION : plays
+    GAME_ASSIGNMENT o|--o{ GAME_SESSION : contextualizes
+    GAME ||--o{ GAME_ATTEMPT : records
+    USER ||--o{ GAME_ATTEMPT : makes
+    GAME_ASSIGNMENT o|--o{ GAME_ATTEMPT : scopes
+    GAME_SESSION o|--o{ GAME_ATTEMPT : contains
+    GAME ||--o{ GAME_SCORE : summarizes
+    USER ||--o{ GAME_SCORE : owns
+    GAME ||--o{ GAME_LEADERBOARD : ranks
+    USER ||--o{ GAME_LEADERBOARD : appears_on
+    GAME_ASSIGNMENT o|--o{ GAME_LEADERBOARD : contextualizes
+    GAME ||--o{ GAME_BADGE : awards
+    USER ||--o{ GAME_BADGE : earns
+```
+
 ## Architecture Notes
 
 - The project uses a modular monolith rather than microservices.

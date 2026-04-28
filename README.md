@@ -2,14 +2,28 @@
 
 ![Edusphere Banner](frontend/src/assets/Banner.jpeg)
 
-![React](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react&logoColor=white)
-![Django](https://img.shields.io/badge/Backend-Django%20%2B%20DRF-092E20?style=for-the-badge&logo=django&logoColor=white)
-![MySQL](https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![JWT](https://img.shields.io/badge/Auth-JWT-F97316?style=for-the-badge)
-![OpenAPI](https://img.shields.io/badge/API-OpenAPI%20%2F%20Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=111)
-![License](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)
+[![CI](https://github.com/Sruwat/Edusphere_LMS/actions/workflows/ci.yml/badge.svg)](https://github.com/Sruwat/Edusphere_LMS/actions/workflows/ci.yml)
+[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-61DAFB?style=for-the-badge&logo=react&logoColor=white)](./frontend)
+[![Backend](https://img.shields.io/badge/Backend-Django%20%2B%20DRF-092E20?style=for-the-badge&logo=django&logoColor=white)](./backend)
+[![Database](https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](./ARCHITECTURE.md)
+[![Auth](https://img.shields.io/badge/Auth-JWT-F97316?style=for-the-badge)](./API.md)
+[![OpenAPI](https://img.shields.io/badge/API-OpenAPI%20%2F%20Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=111)](./API.md)
+[![Vercel Ready](https://img.shields.io/badge/Deploy-Vercel-black?style=for-the-badge&logo=vercel)](./frontend/vercel.json)
+[![Render Ready](https://img.shields.io/badge/Deploy-Render-5A3FFF?style=for-the-badge&logo=render&logoColor=white)](./render.yaml)
+[![License](https://img.shields.io/badge/License-MIT-black?style=for-the-badge)](./LICENSE)
 
 Edusphere LMS is a full-stack, role-based academic management system built for schools, colleges, coaching institutes, academies, and training programs. It brings course management, assessments, attendance, live classes, digital library workflows, AI-assisted learning, forums, games, analytics, and institution-wide communication into one platform.
+
+## Live Links
+
+- Repository: [github.com/Sruwat/Edusphere_LMS](https://github.com/Sruwat/Edusphere_LMS)
+- Architecture Guide: [ARCHITECTURE.md](ARCHITECTURE.md)
+- API Guide: [API.md](API.md)
+- Frontend Deployment Target: `Vercel` via [frontend/vercel.json](frontend/vercel.json)
+- Backend Deployment Target: `Render` via [render.yaml](render.yaml)
+- Live frontend demo: add your Vercel domain here after deployment
+- Live backend API: add your Render domain here after deployment
+- Live Swagger docs: `https://your-backend-domain/api/docs/`
 
 ## Why This Project Stands Out
 
@@ -62,7 +76,35 @@ flowchart TB
     DOMAIN --> EXT[AI / Email / SMS Services]
 ```
 
-For the complete architecture diagrams and system design notes, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For the complete architecture diagrams, system design notes, and database ERD, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Screenshot Gallery
+
+The repo currently includes the product banner and is ready for a full screenshot gallery. To complete this section, add your UI screenshots into `docs/screenshots/` with the names below and replace the placeholders with image embeds.
+
+Recommended gallery set:
+
+- `student-dashboard.png`
+- `teacher-dashboard.png`
+- `admin-dashboard.png`
+- `course-creation.png`
+- `lecture-creation.png`
+- `library-module.png`
+- `forum-module.png`
+- `games-hub.png`
+
+Suggested gallery layout:
+
+| View | Planned File |
+| --- | --- |
+| Student Dashboard | `docs/screenshots/student-dashboard.png` |
+| Teacher Dashboard | `docs/screenshots/teacher-dashboard.png` |
+| Admin Dashboard | `docs/screenshots/admin-dashboard.png` |
+| Course Creation | `docs/screenshots/course-creation.png` |
+| Lecture Creation | `docs/screenshots/lecture-creation.png` |
+| Library Module | `docs/screenshots/library-module.png` |
+| Discussion Forum | `docs/screenshots/forum-module.png` |
+| Games Hub | `docs/screenshots/games-hub.png` |
 
 ## Core Use Cases
 
@@ -123,7 +165,7 @@ For the complete architecture diagrams and system design notes, see [ARCHITECTUR
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md)
-  Full system design, role flows, Mermaid diagrams, backend module layout, and architectural notes.
+  Full system design, role flows, Mermaid diagrams, backend module layout, architectural notes, and database ERD.
 - [API.md](API.md)
   API structure, auth flow, key route groups, local docs endpoints, and backend integration notes.
 
@@ -220,33 +262,34 @@ npm run build
 
 ```text
 Edusphere_LMS/
-├── backend/
-│   ├── sarasedu_backend/
-│   │   ├── accounts/
-│   │   ├── ai/
-│   │   ├── assessments/
-│   │   ├── communications/
-│   │   ├── content/
-│   │   ├── core/
-│   │   ├── courses/
-│   │   ├── forum/
-│   │   ├── games/
-│   │   ├── media_assets/
-│   │   └── sarasedu_backend/
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── contexts/
-│   │   ├── features/
-│   │   ├── lib/
-│   │   ├── services/
-│   │   └── stores/
-│   └── package.json
-├── ARCHITECTURE.md
-├── API.md
-└── README.md
++-- backend/
+|   +-- sarasedu_backend/
+|   |   +-- accounts/
+|   |   +-- ai/
+|   |   +-- assessments/
+|   |   +-- communications/
+|   |   +-- content/
+|   |   +-- core/
+|   |   +-- courses/
+|   |   +-- forum/
+|   |   +-- games/
+|   |   +-- media_assets/
+|   |   +-- sarasedu_backend/
+|   +-- requirements.txt
++-- frontend/
+|   +-- src/
+|   |   +-- app/
+|   |   +-- components/
+|   |   +-- contexts/
+|   |   +-- features/
+|   |   +-- lib/
+|   |   +-- services/
+|   |   +-- stores/
+|   +-- package.json
++-- ARCHITECTURE.md
++-- API.md
++-- render.yaml
++-- README.md
 ```
 
 ## Notes
