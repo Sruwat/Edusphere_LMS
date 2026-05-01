@@ -34,6 +34,283 @@ import {
   Award
 } from 'lucide-react';
 
+function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null, isEditing = false }) {
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [instructions, setInstructions] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [totalMarks, setTotalMarks] = useState('');
+  const [wordLimit, setWordLimit] = useState('');
+  const [allowedFileTypes, setAllowedFileTypes] = useState([]);
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    let mounted = true;
+
+    api.getCourses()
+      .then((data) => {
+        if (mounted) setCourses(data || []);
+      })
+      .catch((err) => {
+        console.error('Failed to load courses', err);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const parseForDatetimeLocal = (val) => {
+      if (!val) return '';
+      try {
+        if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
+          return val.replace(' ', 'T').slice(0, 16);
+        }
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().slice(0, 16);
+      } catch (e) {
+        return '';
+      }
+    };
+
+    if (isEditing && initial) {
+      try {
+        setTitle(initial.title || '');
+        setSelectedCourse(initial.course ? String(initial.course.id || initial.course) : '');
+        setDescription(initial.description || '');
+        setInstructions(initial.instructions || '');
+        setDueDate(parseForDatetimeLocal(initial.due_date || initial.dueDate || initial.deadline));
+        setTotalMarks(initial.total_marks ?? initial.totalMarks ?? '');
+        setWordLimit(initial.word_limit ?? initial.wordLimit ?? '');
+        const fileTypes = initial.allowed_file_types || initial.fileTypes || initial.allowedFileTypes || null;
+        if (Array.isArray(fileTypes)) setAllowedFileTypes(fileTypes);
+        else if (typeof fileTypes === 'string') setAllowedFileTypes(fileTypes.split(/\s*,\s*/));
+        else setAllowedFileTypes([]);
+        setAttachments([]);
+        setAttachmentUrl('');
+      } catch (e) {
+        console.warn('Failed to populate edit form', e);
+      }
+      return;
+    }
+
+    setSelectedCourse('');
+    setTitle('');
+    setDescription('');
+    setInstructions('');
+    setDueDate('');
+    setTotalMarks('');
+    setWordLimit('');
+    setAllowedFileTypes([]);
+    setAttachments([]);
+    setAttachmentUrl('');
+  }, [open, isEditing, initial]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <form onSubmit={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>{isEditing ? 'Edit Assignment' : 'Create New Assignment'}</DialogTitle>
+            <DialogDescription>
+              Create a new assignment for your students with detailed instructions and requirements.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Assignment Title</Label>
+                <Input type="text" placeholder="Enter assignment title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              </div>
+              <div>
+                <Label>Course</Label>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {courses.length === 0 ? (
+                      <SelectItem value="no_courses" disabled>No courses available</SelectItem>
+                    ) : (
+                      courses.map((course) => (
+                        <SelectItem key={course.id} value={String(course.id)}>
+                          {course.title || course.name || course.slug || `Course ${course.id}`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label>Description</Label>
+              <Textarea placeholder="Assignment description..." value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+
+            <div>
+              <Label>Instructions</Label>
+              <Textarea placeholder="Detailed instructions for students..." value={instructions} onChange={(e) => setInstructions(e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Due Date</Label>
+                <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Total Marks</Label>
+                <Input type="number" placeholder="100" value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} />
+              </div>
+              <div>
+                <Label>Word Limit (Optional)</Label>
+                <Input type="number" placeholder="1500" value={wordLimit} onChange={(e) => setWordLimit(e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Allowed File Types</Label>
+              <div className="flex gap-2 mt-2">
+                {['pdf', 'docx', 'jpg', 'png'].map((t) => {
+                  const selected = allowedFileTypes.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => {
+                        setAllowedFileTypes((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
+                      }}
+                      className={`px-2 py-1 rounded text-xs border ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent text-muted-foreground'}`}
+                    >
+                      {t.toUpperCase()}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <Label>Reference Material URL</Label>
+              <div className="flex gap-2">
+                <Input type="url" placeholder="https://example.com/resource.pdf" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (!attachmentUrl) return alert('Please enter a URL');
+                    setAttachments((prev) => [...prev, attachmentUrl.trim()]);
+                    setAttachmentUrl('');
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+              {attachments.length > 0 && (
+                <div className="mt-2 space-y-1 text-sm">
+                  {attachments.map((u, i) => (
+                    <div key={i} className="flex items-center justify-between p-1 border rounded">
+                      <div className="truncate pr-4">{u}</div>
+                      <div className="flex gap-2">
+                        <a href={u} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600">Open</a>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setAttachments((prev) => prev.filter((x, idx) => idx !== i))}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {courses.length === 0 && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                No teacher course is available yet. Create or publish a course first, then you can attach assignments to it.
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={async () => {
+                  if (!title || !selectedCourse || !dueDate || !totalMarks) {
+                    alert('Please provide title, course, due date and total marks before creating assignment');
+                    return;
+                  }
+
+                  const serializeError = (err) => {
+                    try {
+                      if (err && err.data) {
+                        if (typeof err.data === 'string') return err.data;
+                        if (err.data.detail) return err.data.detail;
+                        return Object.entries(err.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
+                      }
+                    } catch (e) { /* ignore */ }
+                    return err?.message || (isEditing ? 'Failed to update assignment' : 'Failed to create assignment');
+                  };
+
+                  try {
+                    setCreating(true);
+                    const fd = new FormData();
+                    fd.append('title', title);
+                    fd.append('course', selectedCourse);
+                    fd.append('description', description);
+                    fd.append('instructions', instructions);
+                    fd.append('due_date', dueDate);
+                    fd.append('total_marks', totalMarks);
+                    if (wordLimit) fd.append('word_limit', wordLimit);
+                    if (allowedFileTypes && allowedFileTypes.length) fd.append('allowed_file_types', JSON.stringify(allowedFileTypes));
+                    fd.append('status', 'active');
+
+                    if (isEditing && initial && initial.id) {
+                      await api.updateAssignment(initial.id, fd);
+                    } else {
+                      const created = await api.createAssignment(fd);
+
+                      if (attachments && attachments.length) {
+                        try {
+                          await Promise.all(attachments.map(async (u) => {
+                            const name = (u && u.split && u.split('/').pop()) || u;
+                            await api.createAssignmentAttachment({ assignment: created.id, file_name: name, file_url: u, file_size_kb: null });
+                          }));
+                        } catch (e) {
+                          console.warn('Failed to create attachment records', e, e && e.data ? e.data : null);
+                          try {
+                            const msg = (e && e.data && (e.data.detail || e.data.error)) || e.message || 'Attachment create failed';
+                            alert(`Attachment warning: ${msg}`);
+                          } catch (_) { /* ignore */ }
+                        }
+                      }
+                    }
+
+                    setCreating(false);
+                    onOpenChange(false);
+                    if (onCreated) await onCreated();
+                  } catch (err) {
+                    console.error(err);
+                    setCreating(false);
+                    alert(serializeError(err));
+                  }
+                }}
+                disabled={creating || courses.length === 0}
+              >
+                {creating ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Assignment' : 'Create Assignment')}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // Types removed for JS build. Assignments should be fetched from API in production.
 export function AssignmentSystem({ userRole }) {
   const [activeFilter, setActiveFilter] = useState('all');
@@ -63,340 +340,91 @@ export function AssignmentSystem({ userRole }) {
   const [assignments, setAssignments] = useState([]);
   const { data: queriedAssignments = [], refetch: refetchAssignments } = useAssignmentsQuery();
 
-  const fetchAssignments = async () => {
+  const normalizeSubmissionList = (subs) => {
+    if (!subs) return [];
+    if (Array.isArray(subs)) return subs;
+    if (subs && typeof subs === 'object') {
+      if (Array.isArray(subs.results)) return subs.results;
+      return [subs];
+    }
+    return [];
+  };
+
+  const fetchAssignments = async (sourceAssignments = null) => {
     try {
-      const data = queriedAssignments;
+      const data = sourceAssignments ?? await api.getAssignments();
       // Use the server-provided status and due_date as-is (show DB values)
       const arr = data || [];
       setAssignments(arr);
-      
-      // For student users, build a map of assignmentId -> submission (student's own submission)
-      if (userRole === 'student') {
-        const map = {};
-        await Promise.all(arr.map(async (a) => {
-          try {
-            let subs = await api.getAssignmentSubmissions(a.id);
-            // Handle different response shapes: array, single object, paginated { results: [...] }
-            if (!subs) return;
-            if (subs && typeof subs === 'object' && !Array.isArray(subs)) {
-              if (Array.isArray(subs.results)) subs = subs.results;
-              else {
-                // single submission object - verify it belongs to this assignment
-                if (String(subs.assignment) === String(a.id) || subs.assignment === a.id) {
-                  map[a.id] = subs;
-                }
-                return;
+
+      if (userRole === 'student' || userRole === 'teacher') {
+        const assignmentIds = new Set(arr.map((assignment) => String(assignment.id)));
+
+        try {
+          const allSubs = normalizeSubmissionList(await api.getAssignmentSubmissions());
+
+          if (userRole === 'student') {
+            const map = {};
+
+            for (const sub of allSubs) {
+              const assignmentId = String(sub.assignment);
+              if (!assignmentIds.has(assignmentId)) continue;
+
+              const current = map[assignmentId];
+              if (!current) {
+                map[assignmentId] = sub;
+                continue;
               }
+
+              const currentTime = new Date(current.submission_date || current.submitted_at || current.created_at || 0).getTime() || 0;
+              const nextTime = new Date(sub.submission_date || sub.submitted_at || sub.created_at || 0).getTime() || 0;
+              if (nextTime >= currentTime) map[assignmentId] = sub;
             }
-            if (Array.isArray(subs) && subs.length > 0) {
-              // Filter to only submissions for this specific assignment
-              const assignmentSubs = subs.filter(s => String(s.assignment) === String(a.id) || s.assignment === a.id);
-              if (assignmentSubs.length === 0) return; // No submissions for this assignment
-              
-              // prefer the latest by submission_date if multiple
-              try {
-                assignmentSubs.sort((x, y) => {
-                  const dx = new Date(x.submission_date || x.submitted_at || x.created_at || 0).getTime() || 0;
-                  const dy = new Date(y.submission_date || y.submitted_at || y.created_at || 0).getTime() || 0;
-                  return dy - dx;
-                });
-              } catch (e) { /* ignore sort errors */ }
-              map[a.id] = assignmentSubs[0];
+
+            setMySubmissionsMap(map);
+          } else {
+            const submissionMap = {};
+
+            for (const sub of allSubs) {
+              const assignmentId = String(sub.assignment);
+              if (!assignmentIds.has(assignmentId)) continue;
+
+              const hasSubmittedContent = sub.submitted_file || sub.submitted_file_url || sub.submission_text || sub.submissionText || sub.submitted_text;
+              if (hasSubmittedContent) submissionMap[assignmentId] = true;
             }
-          } catch (e) {
-            // ignore per-assignment fetch errors
+
+            setMySubmissionsMap(submissionMap);
           }
-        }));
-        setMySubmissionsMap(map);
-      } else if (userRole === 'teacher') {
-        // For teacher users, build a map of assignmentId -> hasSubmissions (check if ANY student submitted)
-        const submissionMap = {};
-        await Promise.all(arr.map(async (a) => {
-          try {
-            let subs = await api.getAssignmentSubmissions(a.id);
-            if (!subs) return;
-            
-            // Normalize response (handle array, paginated, or single object)
-            if (!Array.isArray(subs)) {
-              if (subs.results && Array.isArray(subs.results)) {
-                subs = subs.results;
-              } else {
-                subs = [subs];
-              }
-            }
-            
-            // Check if ANY valid submissions exist for this assignment
-            const validSubs = subs.filter(s => {
-              const belongsToAssignment = String(s.assignment) === String(a.id) || s.assignment === a.id;
-              const hasSubmittedContent = s.submitted_file || s.submitted_file_url || s.submission_text || s.submissionText || s.submitted_text;
-              return belongsToAssignment && hasSubmittedContent;
-            });
-            
-            if (validSubs && validSubs.length > 0) {
-              submissionMap[a.id] = true; // Mark that submissions exist for this assignment
-            }
-          } catch (e) {
-            // ignore per-assignment fetch errors
-          }
-        }));
-        setMySubmissionsMap(submissionMap); // Reuse for teacher: maps assignment.id -> hasSubmissions
+        } catch (submissionError) {
+          console.error('Failed to load assignment submissions', submissionError);
+          setMySubmissionsMap({});
+        }
+      } else {
+        setMySubmissionsMap({});
       }
     } catch (err) {
       console.error('Failed to load assignments', err);
       setAssignments([]);
+      setMySubmissionsMap({});
+    }
+  };
+
+  const refreshAssignments = async () => {
+    try {
+      const result = await refetchAssignments();
+      const freshAssignments = result?.data ?? [];
+      await fetchAssignments(freshAssignments);
+    } catch (err) {
+      console.error('Failed to refetch assignments', err);
+      await fetchAssignments();
     }
   };
 
   useEffect(() => {
-    fetchAssignments();
-  }, [queriedAssignments]);
+    fetchAssignments(queriedAssignments);
+  }, [queriedAssignments, userRole]);
 
-    // submission dialog opens: no additional data required (device-only uploads)
-
-// CreateAssignmentDialog is a self-contained component that manages its own
-// form state and fetches `courses` only when the dialog opens. Keeping the
-// form state local prevents typing in the dialog from causing re-renders in
-// the parent `AssignmentSystem` component (which caused the dialog to refresh
-// on each keystroke).
-function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null, isEditing = false }) {
-  const [courses, setCourses] = useState([]);
-  const [selectedCourse, setSelectedCourse] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [totalMarks, setTotalMarks] = useState('');
-  const [wordLimit, setWordLimit] = useState('');
-  const [allowedFileTypes, setAllowedFileTypes] = useState([]);
-    const [attachments, setAttachments] = useState([]); // array of URL strings
-    const [attachmentUrl, setAttachmentUrl] = useState('');
-  const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    let mounted = true;
-    api.getCourses()
-      .then((data) => { if (mounted) setCourses(data || []); })
-      .catch((err) => { console.error('Failed to load courses', err); });
-    return () => { mounted = false; };
-  }, [open]);
-
-  // when editing, populate form fields from `initial`
-  useEffect(() => {
-    if (!open || !isEditing || !initial) return;
-    // helper to convert DB timestamp to input[type=datetime-local] value
-    const parseForDatetimeLocal = (val) => {
-      if (!val) return '';
-      try {
-        // if format is 'YYYY-MM-DD HH:MM:SS' -> convert to 'YYYY-MM-DDTHH:MM'
-        if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/)) {
-          return val.replace(' ', 'T').slice(0,16);
-        }
-        const d = new Date(val);
-        if (isNaN(d.getTime())) return '';
-        const iso = d.toISOString();
-        return iso.slice(0,16);
-      } catch (e) { return ''; }
-    };
-
-    try {
-      setTitle(initial.title || '');
-      setSelectedCourse(initial.course ? String(initial.course.id || initial.course) : '');
-      setDescription(initial.description || '');
-      setInstructions(initial.instructions || '');
-      setDueDate(parseForDatetimeLocal(initial.due_date || initial.dueDate || initial.deadline));
-      setTotalMarks(initial.total_marks ?? initial.totalMarks ?? '');
-      setWordLimit(initial.word_limit ?? initial.wordLimit ?? '');
-      const fileTypes = initial.allowed_file_types || initial.fileTypes || initial.allowedFileTypes || null;
-      if (Array.isArray(fileTypes)) setAllowedFileTypes(fileTypes);
-      else if (typeof fileTypes === 'string') setAllowedFileTypes(fileTypes.split(/\s*,\s*/));
-      // For edit mode we will not pre-fill attachments for mutation (attachments handled separately)
-      setAttachments([]);
-    } catch (e) { console.warn('Failed to populate edit form', e); }
-  }, [open, isEditing, initial]);
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <form onSubmit={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle>Create New Assignment</DialogTitle>
-          <DialogDescription>
-            Create a new assignment for your students with detailed instructions and requirements.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Assignment Title</Label>
-              <Input type="text" placeholder="Enter assignment title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div>
-              <Label>Course</Label>
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select course" />
-                </SelectTrigger>
-                <SelectContent>
-                  {courses.length === 0 ? (
-                    <SelectItem value="no_courses" disabled>No courses available</SelectItem>
-                  ) : (
-                    courses.map((course) => (
-                      <SelectItem key={course.id} value={String(course.id)}>
-                        {course.title || course.name || course.slug || `Course ${course.id}`}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div>
-            <Label>Description</Label>
-            <Textarea placeholder="Assignment description..." value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          
-          <div>
-            <Label>Instructions</Label>
-            <Textarea placeholder="Detailed instructions for students..." value={instructions} onChange={(e) => setInstructions(e.target.value)} />
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Due Date</Label>
-              <Input type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-            </div>
-            <div>
-              <Label>Total Marks</Label>
-              <Input type="number" placeholder="100" value={totalMarks} onChange={(e) => setTotalMarks(e.target.value)} />
-            </div>
-            <div>
-              <Label>Word Limit (Optional)</Label>
-              <Input type="number" placeholder="1500" value={wordLimit} onChange={(e) => setWordLimit(e.target.value)} />
-            </div>
-          </div>
-          
-          <div>
-            <Label>Allowed File Types</Label>
-            <div className="flex gap-2 mt-2">
-              {['pdf','docx','jpg','png'].map((t) => {
-                const selected = allowedFileTypes.includes(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => {
-                      setAllowedFileTypes((prev) => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
-                    }}
-                    className={`px-2 py-1 rounded text-xs border ${selected ? 'bg-blue-600 text-white border-blue-600' : 'bg-transparent text-muted-foreground'}`}
-                  >
-                    {t.toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          
-          <div>
-            <Label>Reference Material URL</Label>
-            <div className="flex gap-2">
-              <Input type="url" placeholder="https://example.com/resource.pdf" value={attachmentUrl} onChange={(e) => setAttachmentUrl(e.target.value)} />
-              <Button type="button" onClick={() => {
-                if (!attachmentUrl) return alert('Please enter a URL');
-                setAttachments((prev) => [...prev, attachmentUrl.trim()]);
-                setAttachmentUrl('');
-              }}>Add</Button>
-            </div>
-            {attachments.length > 0 && (
-              <div className="mt-2 space-y-1 text-sm">
-                {attachments.map((u, i) => (
-                  <div key={i} className="flex items-center justify-between p-1 border rounded">
-                    <div className="truncate pr-4">{u}</div>
-                    <div className="flex gap-2">
-                      <a href={u} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600">Open</a>
-                      <Button size="sm" variant="outline" onClick={() => setAttachments((prev) => prev.filter((x, idx) => idx !== i))}>Remove</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          
-            <div className="flex gap-2">
-            <Button type="button" className="flex-1" onClick={async () => {
-              // Validate required fields before creating assignment
-              if (!title || !selectedCourse || !dueDate || !totalMarks) {
-                alert('Please provide title, course, due date and total marks before creating assignment');
-                return;
-              }
-
-              const serializeError = (err) => {
-                try {
-                  if (err && err.data) {
-                    if (typeof err.data === 'string') return err.data;
-                    if (err.data.detail) return err.data.detail;
-                    return Object.entries(err.data).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`).join('\n');
-                  }
-                } catch (e) { /* ignore */ }
-                return err?.message || (isEditing ? 'Failed to update assignment' : 'Failed to create assignment');
-              };
-
-              try {
-                setCreating(true);
-                const fd = new FormData();
-                fd.append('title', title);
-                fd.append('course', selectedCourse);
-                fd.append('description', description);
-                fd.append('instructions', instructions);
-                fd.append('due_date', dueDate);
-                fd.append('total_marks', totalMarks);
-                if (wordLimit) fd.append('word_limit', wordLimit);
-                if (allowedFileTypes && allowedFileTypes.length) fd.append('allowed_file_types', JSON.stringify(allowedFileTypes));
-                // Always set status to 'active'; 'overdue' is computed dynamically on backend
-                fd.append('status', 'active');
-
-                if (isEditing && initial && initial.id) {
-                  // Update existing assignment
-                  await api.updateAssignment(initial.id, fd);
-                } else {
-                  const created = await api.createAssignment(fd);
-
-                  // If reference material URLs were provided, create AssignmentAttachment rows
-                  if (attachments && attachments.length) {
-                    try {
-                      await Promise.all(attachments.map(async (u) => {
-                        const name = (u && u.split && u.split('/').pop()) || u;
-                        await api.createAssignmentAttachment({ assignment: created.id, file_name: name, file_url: u, file_size_kb: null });
-                      }));
-                    } catch (e) {
-                      console.warn('Failed to create attachment records', e, e && e.data ? e.data : null);
-                      try {
-                        const msg = (e && e.data && (e.data.detail || e.data.error)) || e.message || 'Attachment create failed';
-                        alert(`Attachment warning: ${msg}`);
-                      } catch (_) { /* ignore */ }
-                    }
-                  }
-                }
-
-                setCreating(false);
-                onOpenChange(false);
-                if (onCreated) await onCreated();
-              } catch (err) {
-                console.error(err);
-                setCreating(false);
-                alert(serializeError(err));
-              }
-            }} disabled={creating}>
-                {creating ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Assignment' : 'Create Assignment')}
-            </Button>
-          </div>
-        </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+  // submission dialog opens: no additional data required (device-only uploads)
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -647,18 +675,13 @@ function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null,
     try {
       await api.deleteAssignment(assignment.id);
       // refresh list and close details if open
-      await fetchAssignments();
+      await refreshAssignments();
       if (selectedAssignment && String(selectedAssignment.id) === String(assignment.id)) setSelectedAssignment(null);
     } catch (err) {
       console.error('Failed to delete assignment', err);
       alert((err && err.message) || 'Delete failed');
     }
   };
-
-  useEffect(() => {
-    // load assignments on mount
-    fetchAssignments();
-  }, []);
 
   useEffect(() => {
     // when a teacher opens an assignment, load real submissions for that assignment
@@ -1147,7 +1170,7 @@ function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null,
                 setSubmissionText('');
                 setSubmissionOpen(false);
                 // refresh assignments list and the submission list for this assignment
-                await fetchAssignments();
+                await refreshAssignments();
                 try {
                   const subs = await api.getAssignmentSubmissions(submissionAssignment.id);
                   setAssignmentSubmissions(subs || []);
@@ -1297,7 +1320,7 @@ function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null,
                 setGradingOpen(false);
                 setGradingSubmission(null);
                 // refresh assignments and submissions
-                await fetchAssignments();
+                await refreshAssignments();
                 try {
                   if (selectedAssignment && selectedAssignment.id) {
                     const subs = await api.getAssignmentSubmissions(selectedAssignment.id);
@@ -1382,7 +1405,7 @@ function CreateAssignmentDialog({ open, onOpenChange, onCreated, initial = null,
       <CreateAssignmentDialog
         open={createAssignmentOpen}
         onOpenChange={(v) => { setCreateAssignmentOpen(v); if (!v) { setEditInitial(null); setEditMode(false); } }}
-        onCreated={fetchAssignments}
+        onCreated={refreshAssignments}
         initial={editInitial}
         isEditing={editMode}
       />

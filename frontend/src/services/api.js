@@ -1,7 +1,9 @@
 import { toast } from 'sonner';
 
 const DEFAULT_BASE = '/api';
-const BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_BASE).replace(/\/$/, '');
+const configuredBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
+const isLocalAbsoluteApi = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api\/?$/i.test(configuredBase);
+const BASE = ((import.meta.env.DEV && (!configuredBase || isLocalAbsoluteApi)) ? DEFAULT_BASE : (configuredBase || DEFAULT_BASE)).replace(/\/$/, '');
 
 function isStorageBlockedError(error) {
   if (!error) return false;
@@ -751,9 +753,9 @@ export async function submitAssignment({ assignment, file, submission_text }) {
   return await request('/assignment-submissions/', { method: 'POST', body: fd });
 }
 
-export async function getAssignmentSubmissions(assignmentId) {
-  if (!assignmentId) return [];
-  const data = await request(`/assignment-submissions/?assignment=${assignmentId}`);
+export async function getAssignmentSubmissions(assignmentId = null) {
+  const query = assignmentId ? `?assignment=${encodeURIComponent(assignmentId)}` : '';
+  const data = await request(`/assignment-submissions/${query}`);
   if (data && data.results) return data.results;
   return data || [];
 }

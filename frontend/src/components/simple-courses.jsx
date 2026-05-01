@@ -45,47 +45,36 @@ export function SimpleCourses({ userRole }) {
   const apiBase = (
     import.meta.env?.VITE_API_BASE_URL ||
     import.meta.env?.VITE_API_BASE ||
-    'http://localhost:8000/api'
+    '/api'
   ).replace(/\/+$|^\s+|\s+$/g, '');
-  const assetBase = apiBase.replace(/\/api\/?$/, '') || (typeof window !== 'undefined' ? window.location.origin : '');
+  const configuredBackendOrigin = (
+    import.meta.env?.VITE_BACKEND_ORIGIN ||
+    ''
+  ).replace(/\/+$|^\s+|\s+$/g, '');
+  const assetBase = configuredBackendOrigin || apiBase.replace(/\/api\/?$/, '') || (typeof window !== 'undefined' ? window.location.origin : '');
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     
     const fetchData = async () => {
+      const coursesData = queriedCourses || [];
+      const enrollmentsByCount = {};
+      coursesData.forEach((course) => {
+        if (course?.id != null) {
+          enrollmentsByCount[course.id] = course.total_enrollments || 0;
+        }
+      });
+
       try {
-        const [coursesData, enrollmentsData] = await Promise.all([
-          Promise.resolve(queriedCourses),
-          userRole === 'student' ? api.getEnrollments() : Promise.resolve([])
-        ]);
+        const enrollmentsData = userRole === 'student'
+          ? await api.getEnrollments()
+          : [];
         
         if (mounted) {
-          setCourses(coursesData || []);
+          setCourses(coursesData);
           setEnrollments(enrollmentsData || []);
-          
-          // Fetch all enrollments to count per course
-          try {
-            const allEnrollments = await api.getEnrollments();
-            const enrollmentsByCount = {};
-            const enrollmentList = Array.isArray(allEnrollments) ? allEnrollments : allEnrollments.results || [];
-            
-            enrollmentList.forEach(enrollment => {
-              const courseId = enrollment.course;
-              if (courseId) {
-                enrollmentsByCount[courseId] = (enrollmentsByCount[courseId] || 0) + 1;
-              }
-            });
-            
-            if (mounted) {
-              setCourseEnrollmentCounts(enrollmentsByCount);
-            }
-          } catch (err) {
-            console.warn('Failed to fetch enrollment counts:', err);
-            if (mounted) {
-              setCourseEnrollmentCounts({});
-            }
-          }
+          setCourseEnrollmentCounts(enrollmentsByCount);
           
           // Fetch user's ratings for enrolled courses
           if (userRole === 'student' && user && user.id) {
@@ -110,13 +99,15 @@ export function SimpleCourses({ userRole }) {
                 setUserRatings({});
               }
             }
+          } else if (mounted) {
+            setUserRatings({});
           }
         }
       } catch (error) {
         if (mounted) {
-          setCourses([]);
+          setCourses(coursesData);
           setEnrollments([]);
-          setCourseEnrollmentCounts({});
+          setCourseEnrollmentCounts(enrollmentsByCount);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -125,7 +116,7 @@ export function SimpleCourses({ userRole }) {
     
     fetchData();
     return () => { mounted = false; };
-  }, [userRole, user, queriedCourses]);
+  }, [userRole, user?.id, queriedCourses]);
 
   const handleEnroll = async (courseId) => {
     if (!user || !user.id) {

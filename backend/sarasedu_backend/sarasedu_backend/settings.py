@@ -198,7 +198,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
-        'user': '2000/day',
+        'user': '20000/day',
         'ai_chat': '30/minute'
     }
 }
